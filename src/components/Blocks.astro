@@ -19,7 +19,7 @@ import Cta from './blocks/Cta.astro';
 import Testimonials from './blocks/Testimonials.astro';
 import Tabs from './blocks/Tabs.astro';
 import IconList from './blocks/IconList.astro';
-import TallyForm from './blocks/TallyForm.astro';
+import NetlifyForm from './blocks/NetlifyForm.astro';
 import Submenu from './blocks/Submenu.astro';
 import BlogFeed from './blocks/BlogFeed.astro';
 import NectarIcon from './blocks/NectarIcon.astro';
@@ -222,7 +222,7 @@ function columnStyle(attrs: Record<string, string>) {
 
       // ---- forms ---------------------------------------------------------
       case 'gravityform':
-        return <TallyForm formId={attrs.id} />;
+        return <NetlifyForm formId={attrs.id} />;
 
       // ---- embedded / nested content --------------------------------------
       case 'vc_raw_html': {

@@ -1,0 +1,231 @@
+---
+/**
+ * Replaces the original Gravity Forms embeds with a native Netlify form.
+ *
+ * Netlify discovers forms by parsing the deployed HTML at deploy time, so this
+ * renders real markup — no iframe, no third-party script, and the page still
+ * works with JavaScript off (the attribution fields simply post empty).
+ *
+ * Requirements Netlify imposes, all handled below:
+ *   - `data-netlify="true"` and a unique `name`
+ *   - a hidden `form-name` input matching that name, or the POST 404s
+ *   - every field present in the static HTML, hidden ones included
+ *   - `enctype="multipart/form-data"` when the form accepts a file
+ */
+import { forms, actionFor, ATTRIBUTION_FIELDS } from '../../lib/forms';
+import { gravityFormMap, site } from '../../lib/site';
+
+interface Props {
+  /** The original Gravity Forms ID from the shortcode. */
+  formId?: string;
+  /** Or address a form directly by key. */
+  formKey?: string;
+}
+const { formId, formKey } = Astro.props;
+const key = formKey ?? (formId ? gravityFormMap[formId] : undefined) ?? 'contact';
+const spec = forms[key] ?? forms.contact;
+const action = actionFor(key, Astro.url.pathname);
+const hasFile = spec.fields.some((f) => f.type === 'file');
+---
+
+<div class="nf">
+  <h3 class="nf__heading">{spec.heading}</h3>
+  {spec.intro && <p class="nf__intro">{spec.intro}</p>}
+
+  <form
+    name={spec.name}
+    method="POST"
+    action={action}
+    data-netlify="true"
+    data-netlify-honeypot="bot-field"
+    enctype={hasFile ? 'multipart/form-data' : undefined}
+    class="nf__form"
+  >
+    {/* Netlify matches the POST back to the form by this value. */}
+    <input type="hidden" name="form-name" value={spec.name} />
+
+    {/* Honeypot: hidden from people, irresistible to bots. */}
+    <p class="nf__pot">
+      <label>Do not fill this in <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+    </p>
+
+    {/* Filled by the inline script below; empty for a no-JS submit. */}
+    {ATTRIBUTION_FIELDS.map((f) => <input type="hidden" name={f} value="" data-attr={f} />)}
+
+    <div class="nf__grid">
+      {
+        spec.fields.map((f) => (
+          <p class={`nf__field${f.wide || f.type === 'textarea' || f.type === 'file' ? ' nf__field--wide' : ''}`}>
+            <label class="nf__label" for={`${spec.name}-${f.name}`}>
+              {f.label}
+              {f.required && <abbr class="nf__req" title="required">*</abbr>}
+            </label>
+
+            {f.type === 'textarea' ? (
+              <textarea
+                id={`${spec.name}-${f.name}`}
+                name={f.name}
+                rows="5"
+                required={f.required}
+              />
+            ) : f.type === 'select' ? (
+              <select id={`${spec.name}-${f.name}`} name={f.name} required={f.required}>
+                <option value="">Please choose…</option>
+                {f.options?.map((o) => <option value={o}>{o}</option>)}
+              </select>
+            ) : (
+              <input
+                id={`${spec.name}-${f.name}`}
+                name={f.name}
+                type={f.type}
+                required={f.required}
+                accept={f.accept}
+                multiple={f.multiple}
+                autocomplete={
+                  f.name === 'name'
+                    ? 'name'
+                    : f.name === 'email'
+                      ? 'email'
+                      : f.name === 'phone'
+                        ? 'tel'
+                        : f.name === 'address'
+                          ? 'street-address'
+                          : undefined
+                }
+              />
+            )}
+
+            {f.hint && <span class="nf__hint">{f.hint}</span>}
+          </p>
+        ))
+      }
+    </div>
+
+    <div class="nf__actions">
+      <button type="submit" class="btn btn--accent btn--large">{spec.submitLabel}</button>
+      <span class="nf__alt">
+        or call <a href={site.phoneHref}>{site.phone}</a>
+      </span>
+    </div>
+  </form>
+</div>
+
+<script is:inline>
+  (function () {
+    // Copy the session's first-touch attribution into this form's hidden
+    // fields. Runs per form so multiple forms on one page all get filled.
+    var attr = {};
+    try {
+      attr = JSON.parse(sessionStorage.getItem('ll_attr') || '{}');
+    } catch (e) {
+      /* storage unavailable — post the form without attribution */
+    }
+    attr.submitted_from = window.location.pathname;
+
+    var inputs = document.querySelectorAll('input[data-attr]');
+    for (var i = 0; i < inputs.length; i++) {
+      var k = inputs[i].getAttribute('data-attr');
+      if (attr[k]) inputs[i].value = attr[k];
+    }
+  })();
+</script>
+
+<style>
+  .nf {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+    color: var(--body-text);
+  }
+  .nf__heading {
+    color: var(--ink);
+    margin-top: 0;
+  }
+  .nf__intro {
+    margin-top: 0;
+    max-width: var(--measure);
+  }
+  .nf__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+  @media (max-width: 640px) {
+    .nf__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .nf__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+  }
+  .nf__field--wide {
+    grid-column: 1 / -1;
+  }
+  .nf__label {
+    font-family: var(--font-head);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+  .nf__req {
+    color: var(--accent);
+    text-decoration: none;
+    margin-left: 2px;
+  }
+  .nf input,
+  .nf select,
+  .nf textarea {
+    width: 100%;
+    padding: 12px 14px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .nf textarea {
+    resize: vertical;
+  }
+  .nf input:focus-visible,
+  .nf select:focus-visible,
+  .nf textarea:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .nf input[type='file'] {
+    padding: 10px;
+    background: var(--surface-2);
+  }
+  .nf__hint {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .nf__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .nf__alt {
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  /* Off-screen rather than display:none — some bots skip hidden inputs. */
+  .nf__pot {
+    position: absolute;
+    left: -5000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+</style>

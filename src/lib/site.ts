@@ -49,20 +49,13 @@ export const site = {
 } as const;
 
 /**
- * Tally form IDs, replacing the original Gravity Forms.
- *
- * Fill in the ID from a Tally form's share URL (tally.so/r/<ID>). Any form left
- * blank renders a "call us" fallback instead of an empty embed.
+ * Form keys. The forms themselves are defined in `src/lib/forms.ts` and posted
+ * to Netlify Forms; nothing third-party is embedded any more.
  */
-export const tallyForms: Record<string, string> = {
-  contact: '', // was Gravity Forms #5 "Contact"
-  quote: '', // was Gravity Forms #4 "Get a Quote"
-  estimate: '', // was Gravity Forms #2 "Schedule Estimate"
-  referral: '', // was Gravity Forms #6 "Referral Form"
-};
+export type FormKey = 'contact' | 'quote' | 'estimate' | 'referral';
 
-/** Maps the original Gravity Forms IDs onto the Tally form keys above. */
-export const gravityFormMap: Record<string, keyof typeof tallyForms> = {
+/** Maps the original Gravity Forms IDs onto the form keys above. */
+export const gravityFormMap: Record<string, FormKey> = {
   '1': 'contact',
   '2': 'estimate',
   '3': 'estimate',

@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { site } from '../lib/site';
 import Analytics from '../components/Analytics.astro';
+import Attribution from '../components/Attribution.astro';
 
 interface Props {
   title: string;
@@ -112,6 +113,8 @@ const orgSchema = {
     <link rel="alternate" type="application/rss+xml" title={`${site.name} Blog`} href="/rss.xml" />
 
     <Analytics placement="head" />
+    {/* Records the session's first touch so forms can post it back. */}
+    <Attribution />
 
     <script is:inline type="application/ld+json" set:html={JSON.stringify(orgSchema)} />
     {schema && <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />}

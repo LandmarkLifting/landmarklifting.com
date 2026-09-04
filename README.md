@@ -199,21 +199,42 @@ All 209 exact rules are verified end to end against a local `wrangler dev`.
 
 ## Forms
 
-The original used Gravity Forms, which has no static equivalent. Forms now embed
-**Tally**. Add your form IDs in `src/lib/site.ts`:
+The original used Gravity Forms, which has no static equivalent. Forms are now
+**native Netlify Forms** — real HTML posted to Netlify, no iframe and no
+third-party script. Definitions live in `src/lib/forms.ts`; `NetlifyForm.astro`
+renders them.
 
-```ts
-export const tallyForms = {
-  contact:  '',  // was Gravity Forms #5
-  quote:    '',  // was Gravity Forms #4
-  estimate: '',  // was Gravity Forms #2
-  referral: '',  // was Gravity Forms #6
-};
-```
+| Key | Was | Appears on |
+| --- | --- | --- |
+| `quote` | Gravity Forms #4 "Get a Quote" | 66 pages, via the "Contact Block" reusable block |
+| `referral` | Gravity Forms #6 "Referral Form" | `/referral-program/` |
+| `contact` | Gravity Forms #5 "Contact" | defined, no live embed |
+| `estimate` | Gravity Forms #2 "Schedule Estimate" | defined, no live embed |
 
-The ID is the part after `tally.so/r/`. Until an ID is filled in, that form
-renders a call-us / email-us fallback instead of an empty embed, so no page
-ships a dead form.
+**The field specs are a reconstruction, not a migration.** Gravity Forms kept
+its fields in `wp_gf_form_meta`, which was never carried into this repo — only
+the form names and IDs survived, in `gravityFormMap`. The real field JSON is
+still recoverable from the backup's SQL dump if exact parity is ever needed.
+
+Netlify registers a form by parsing the deployed HTML at deploy time, so every
+field must exist in the static markup — including hidden ones. A field injected
+by JavaScript alone is never registered and its value is dropped on submit.
+
+### Attribution
+
+The site runs Google Ads (`AW-664651796`) and a Meta Pixel, so every form posts
+a block of hidden attribution fields: the five `utm_*` parameters, `gclid`,
+`gbraid`, `wbraid`, `fbclid`, plus `first_landing_page`, `referrer` and
+`submitted_from`.
+
+`Attribution.astro` records these **once per session, on first touch**, into
+`sessionStorage`. An ad click rarely lands on the page with the form on it — it
+lands on a service or location page, and the visitor submits later from
+`/contact/`, by which point the query string is gone. First touch wins, so an
+internal page view never overwrites the campaign that brought them in.
+
+Submissions appear under **Forms** in the Netlify dashboard. Notification
+emails are configured there, not in this repo.
 
 ## Service-area map
 
