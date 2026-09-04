@@ -6,7 +6,7 @@ redirects and media all come from the backup's database dump; nothing is
 carried over from the WordPress runtime.
 
 - **Framework:** Astro (static output, no server rendering)
-- **Host:** Cloudflare Worker with static assets (`wrangler.toml`)
+- **Host:** Netlify (`netlify.toml`)
 - **Original stack:** WordPress + Salient theme + WPBakery page builder
 
 ## Commands
@@ -16,8 +16,7 @@ npm install
 npm run dev       # local dev server
 npm run build     # collect media, generate redirects, build to dist/
 npm run verify    # post-build link/image/metadata checks
-npm run preview   # build, then serve through wrangler locally
-npm run deploy    # build and deploy to Cloudflare
+npm run preview   # build, then serve the output locally
 ```
 
 `npm run build` is `scripts/build-redirects.mjs` then `astro build`. It reads
@@ -184,12 +183,13 @@ would land on a 404. Legacy WordPress endpoints (`/wp-admin/*`, `/feed/`,
 Do not edit `public/_redirects` by hand — change the script or
 `src/data/redirects.json` and re-run the build.
 
-**Rule order matters.** Cloudflare counts every rule from the first wildcard
-onwards as a "dynamic" rule and honours only 100 of them; with splats in the
-middle of the file, 29 rules were being silently dropped and those URLs fell
-back to a 307. The generator now writes all exact rules first and the two
-wildcard rules last. `wrangler dev` reports how many it parsed — it should say
-**211 valid redirect rules** with no "Skipping remaining lines" warning.
+**Rule order matters.** `_redirects` is matched top to bottom and the first
+match wins, so an exact rule must never sit below a wildcard that would swallow
+it. The generator writes all 209 exact rules first and the 2 wildcards last.
+
+(This also avoids a Cloudflare-specific trap, if the site ever moves back: there,
+every rule from the first wildcard onwards counts as "dynamic" and only 100 are
+honoured — with wildcards mid-file, 29 rules were silently dropped.)
 
 A couple of legacy URLs contain non-ASCII characters (one has a literal
 ellipsis); those are percent-encoded on the way out, or the rule never matches
@@ -298,13 +298,14 @@ What is already handled:
 
 Worth doing at launch, outside the codebase:
 
-1. **Pick a canonical host.** There is no www → apex redirect in `_redirects`
-   because it belongs at the Cloudflare level — add a redirect rule so
-   `www.landmarklifting.com` 301s to the apex (canonicals already point there).
+1. **Pick a canonical host.** There is no www → apex rule in `_redirects`
+   because Netlify handles it: add both domains under Domain management and set
+   the apex as primary, and Netlify 301s `www` to it (canonicals already point
+   at the apex).
 2. **Resubmit the sitemap** in Search Console and watch Coverage for a few
    weeks; the redirect map is the safety net but it is worth seeing it settle.
-3. **Confirm 404s return a real 404 status**, not 200. `not_found_handling =
-   "404-page"` in `wrangler.toml` should do this — verify once deployed.
+3. **Confirm 404s return a real 404 status**, not 200. Netlify serves
+   `dist/404.html` automatically for unmatched paths — verify once deployed.
 
 Known gaps in the *source* content, not the migration:
 
@@ -339,10 +340,13 @@ way, but the repo can stay private if you would rather.
 
 ### Continuous deployment
 
-Connect the repo in **Workers & Pages → Create → Connect to Git** with:
+Connect the repo in Netlify (**Add new site → Import an existing project**).
+`netlify.toml` already sets everything, so the defaults it offers should be
+left alone:
 
 - Build command: `npm run build`
-- Output directory: `dist`
+- Publish directory: `dist`
+- Node: 22 (pinned in `netlify.toml`)
 
 Because the build no longer depends on the backup, this works on a clean
 checkout. Re-importing content is a deliberate local step (`npm run media`),
@@ -350,11 +354,15 @@ and the result gets committed like any other change.
 
 ## Deployment notes
 
-- `wrangler.toml` serves `./dist`; `_redirects` and `_headers` are honoured by
-  the Workers runtime.
-- Set the custom domain in the Cloudflare dashboard (or add a `routes` entry).
+- `netlify.toml` sets the build command, publish directory and Node version.
+- `_redirects` and `_headers` are read from `dist/` by Netlify directly.
+- Add the custom domain in **Site configuration → Domain management**, and set
+  the apex as primary so `www` redirects to it (see the SEO notes above).
 - `site` in `astro.config.mjs` drives canonical URLs, the sitemap and RSS —
   update it if the domain changes.
+- Netlify's "Pretty URLs" post-processing also normalises trailing slashes, but
+  the explicit 301s in `_redirects` are matched first, so the permanent status
+  is what visitors and crawlers get.
 
 ## Coverage audit
 

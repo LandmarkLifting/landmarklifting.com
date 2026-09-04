@@ -1,0 +1,21 @@
+# Netlify build configuration.
+#
+# The site is static Astro output. Redirects and headers live in
+# public/_redirects and public/_headers, which Netlify reads natively from the
+# publish directory — they are Netlify's own formats, so nothing is duplicated
+# here.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Astro 5 needs Node 20+. Pin it so local and CI agree.
+  NODE_VERSION = "22"
+
+# Deploy previews and branch builds get the same treatment as production.
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.branch-deploy]
+  command = "npm run build"

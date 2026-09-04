@@ -1,9 +1,0 @@
-name = "landmarklifting"
-compatibility_date = "2025-04-01"
-
-# Static-asset Worker: `npm run build` emits ./dist, which Wrangler serves
-# directly. public/_redirects and public/_headers are honoured by the runtime.
-[assets]
-directory = "./dist"
-not_found_handling = "404-page"
-html_handling = "auto-trailing-slash"
