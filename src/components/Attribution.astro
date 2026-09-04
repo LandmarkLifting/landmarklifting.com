@@ -2,58 +2,139 @@
 /**
  * First-touch attribution capture.
  *
- * Runs on every page. An ad click almost never lands on the page with the form
- * on it — it lands on a service or location page, the visitor reads, then
- * navigates to /contact/ or /get-a-quote/ and submits. By then the query string
- * that identified the campaign is gone.
+ * Rebuilt to match what the original Gravity Forms actually did. The old form's
+ * five hidden fields held Google Analytics `__utmz` cookie values — `google`,
+ * `organic`, `(direct)`, `(not set)` — not raw URL parameters. That is why 65%
+ * of 1,733 entries carried attribution even though most visitors submit from a
+ * clean URL: something read their *stored* attribution rather than the current
+ * query string.
  *
- * So the first page of the session records the campaign parameters into
- * sessionStorage, and NetlifyForm reads them back at submit time. First touch
- * wins: a later internal page view never overwrites what brought them in.
+ * So: capture on first landing, persist, and reuse. Reading `?utm_source=` off
+ * the current URL would only ever attribute the minority who submit on the same
+ * page they landed on.
  *
- * sessionStorage (not localStorage) is deliberate — attribution should describe
- * this visit, not one from three weeks ago.
+ * Two rules taken from auditing the old entries:
+ *   - 90-day window, matching the old GA attribution window. localStorage with
+ *     an explicit expiry, since sessionStorage would drop attribution the
+ *     moment someone closes the tab and comes back to submit.
+ *   - Never write the literal string "undefined". The old form did, 52 times in
+ *     Source, 400 in Keyword and 493 in GCLID, from stringifying an undefined
+ *     variable. A missing value posts as empty here.
  */
 ---
 
 <script is:inline>
   (function () {
     var KEY = 'll_attr';
+    var NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+
+    /** Search engines that should read as organic rather than referral. */
+    var SEARCH = {
+      'google.': 'google',
+      'bing.': 'bing',
+      'duckduckgo.': 'duckduckgo.com',
+      'yahoo.': 'yahoo',
+      'ecosia.': 'ecosia',
+      'brave.': 'brave',
+      'startpage.': 'startpage',
+      'baidu.': 'baidu',
+      'yandex.': 'yandex',
+    };
+
+    /** Trim, and never let `undefined`/`null` through as text. */
+    function clean(v) {
+      if (v === undefined || v === null) return '';
+      var s = String(v).trim();
+      if (s === 'undefined' || s === 'null') return '';
+      return s.slice(0, 255);
+    }
+
     try {
-      // First touch wins — never overwrite an existing record.
-      if (sessionStorage.getItem(KEY)) return;
+      var stored = null;
+      try {
+        var raw = localStorage.getItem(KEY);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          // Expire past the 90-day window rather than attributing a lead to a
+          // campaign from three months ago.
+          if (parsed && parsed.t && Date.now() - parsed.t < NINETY_DAYS) stored = parsed;
+        }
+      } catch (e) {
+        /* unreadable or corrupt — fall through and capture fresh */
+      }
+
+      // First touch wins. Once a visit is attributed, later page views and
+      // later campaigns never overwrite it.
+      if (stored) return;
 
       var params = new URLSearchParams(window.location.search);
-      var attr = {};
-      var keys = [
-        'utm_source',
-        'utm_medium',
-        'utm_campaign',
-        'utm_term',
-        'utm_content',
-        'gclid',
-        'gbraid',
-        'wbraid',
-        'fbclid',
-      ];
-      for (var i = 0; i < keys.length; i++) {
-        var v = params.get(keys[i]);
-        if (v) attr[keys[i]] = v.slice(0, 255);
+      var ref = clean(document.referrer);
+      var refHost = '';
+      if (ref) {
+        try {
+          refHost = new URL(ref).hostname.toLowerCase();
+        } catch (e) {
+          refHost = '';
+        }
+      }
+      var internal = refHost && refHost.indexOf(window.location.hostname) !== -1;
+
+      var gclid = clean(params.get('gclid'));
+      var gbraid = clean(params.get('gbraid'));
+      var wbraid = clean(params.get('wbraid'));
+
+      // Source: explicit param, else derive from the referrer, else direct.
+      var source = clean(params.get('utm_source'));
+      if (!source) {
+        if (gclid || gbraid || wbraid) {
+          source = 'google';
+        } else if (refHost && !internal) {
+          source = refHost.replace(/^www\./, '');
+          for (var frag in SEARCH) {
+            if (refHost.indexOf(frag) !== -1) {
+              source = SEARCH[frag];
+              break;
+            }
+          }
+        } else {
+          source = '(direct)';
+        }
       }
 
-      attr.first_landing_page = window.location.pathname + window.location.search;
-
-      // An internal referrer means this is not the entry page; leave it blank
-      // rather than reporting the site as its own traffic source.
-      var ref = document.referrer || '';
-      if (ref && ref.indexOf(window.location.host) === -1) {
-        attr.referrer = ref.slice(0, 255);
+      // Medium: explicit param, else infer. Paid clicks carry a click ID.
+      var medium = clean(params.get('utm_medium'));
+      if (!medium) {
+        if (gclid || gbraid || wbraid) {
+          medium = 'cpc';
+        } else if (refHost && !internal) {
+          var isSearch = false;
+          for (var f in SEARCH) {
+            if (refHost.indexOf(f) !== -1) isSearch = true;
+          }
+          medium = isSearch ? 'organic' : 'referral';
+        } else {
+          medium = '(none)';
+        }
       }
 
-      sessionStorage.setItem(KEY, JSON.stringify(attr));
+      var attr = {
+        t: Date.now(),
+        utm_source: source,
+        utm_medium: medium,
+        utm_campaign: clean(params.get('utm_campaign')) || '(not set)',
+        utm_term: clean(params.get('utm_term')),
+        utm_content: clean(params.get('utm_content')),
+        gclid: gclid,
+        gbraid: gbraid,
+        wbraid: wbraid,
+        landing_page: window.location.pathname + window.location.search,
+        referrer: internal ? '' : ref,
+      };
+
+      localStorage.setItem(KEY, JSON.stringify(attr));
     } catch (e) {
-      // Private mode or storage disabled — forms still submit, just without
-      // attribution. Never let this break the page.
+      // Private mode, storage disabled, or quota exceeded. Forms still submit,
+      // just without attribution — never let this break the page.
     }
   })();
 </script>

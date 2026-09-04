@@ -1,16 +1,19 @@
 ---
 /**
- * Replaces the original Gravity Forms embeds with a native Netlify form.
+ * Renders a form from `src/lib/forms.ts` as a native Netlify form.
  *
- * Netlify discovers forms by parsing the deployed HTML at deploy time, so this
- * renders real markup — no iframe, no third-party script, and the page still
- * works with JavaScript off (the attribution fields simply post empty).
+ * Real markup, no iframe and no third-party script, so the page still works
+ * with JavaScript off — the attribution fields simply post empty.
  *
  * Requirements Netlify imposes, all handled below:
  *   - `data-netlify="true"` and a unique `name`
  *   - a hidden `form-name` input matching that name, or the POST 404s
  *   - every field present in the static HTML, hidden ones included
  *   - `enctype="multipart/form-data"` when the form accepts a file
+ *
+ * The original used Cloudflare Turnstile for spam. That needs a site key and a
+ * server to verify against, so this relies on Netlify's own spam filtering plus
+ * the honeypot below. Add `data-netlify-recaptcha` if more is needed.
  */
 import { forms, actionFor, ATTRIBUTION_FIELDS } from '../../lib/forms';
 import { gravityFormMap, site } from '../../lib/site';
@@ -22,10 +25,26 @@ interface Props {
   formKey?: string;
 }
 const { formId, formKey } = Astro.props;
-const key = formKey ?? (formId ? gravityFormMap[formId] : undefined) ?? 'contact';
-const spec = forms[key] ?? forms.contact;
-const action = actionFor(key, Astro.url.pathname);
+const key = formKey ?? (formId ? gravityFormMap[formId] : undefined) ?? 'quote';
+const spec = forms[key] ?? forms.quote;
+const action = actionFor(spec.name);
 const hasFile = spec.fields.some((f) => f.type === 'file');
+const maxFiles = spec.fields.find((f) => f.type === 'file')?.maxFiles ?? 0;
+
+const autocompleteFor = (name: string) =>
+  ({
+    first_name: 'given-name',
+    last_name: 'family-name',
+    your_name: 'name',
+    email: 'email',
+    your_email: 'email',
+    phone: 'tel',
+    your_phone: 'tel',
+    address_street: 'address-line1',
+    address_line2: 'address-line2',
+    address_city: 'address-level2',
+    address_zip: 'postal-code',
+  })[name];
 ---
 
 <div class="nf">
@@ -40,6 +59,7 @@ const hasFile = spec.fields.some((f) => f.type === 'file');
     data-netlify-honeypot="bot-field"
     enctype={hasFile ? 'multipart/form-data' : undefined}
     class="nf__form"
+    data-max-files={maxFiles || undefined}
   >
     {/* Netlify matches the POST back to the form by this value. */}
     <input type="hidden" name="form-name" value={spec.name} />
@@ -49,55 +69,68 @@ const hasFile = spec.fields.some((f) => f.type === 'file');
       <label>Do not fill this in <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
     </p>
 
-    {/* Filled by the inline script below; empty for a no-JS submit. */}
-    {ATTRIBUTION_FIELDS.map((f) => <input type="hidden" name={f} value="" data-attr={f} />)}
+    {/* Filled by the script below; empty values post fine with JS off. */}
+    {
+      spec.attribution &&
+        ATTRIBUTION_FIELDS.map((f) => (
+          <input type="hidden" name={f} value="" data-attr={f} />
+        ))
+    }
 
     <div class="nf__grid">
       {
-        spec.fields.map((f) => (
-          <p class={`nf__field${f.wide || f.type === 'textarea' || f.type === 'file' ? ' nf__field--wide' : ''}`}>
-            <label class="nf__label" for={`${spec.name}-${f.name}`}>
-              {f.label}
-              {f.required && <abbr class="nf__req" title="required">*</abbr>}
-            </label>
+        spec.fields.map((f) => {
+          const id = `${spec.name}-${f.name}`;
+          const wide = f.wide || f.type === 'textarea' || f.type === 'file';
 
-            {f.type === 'textarea' ? (
-              <textarea
-                id={`${spec.name}-${f.name}`}
-                name={f.name}
-                rows="5"
-                required={f.required}
-              />
-            ) : f.type === 'select' ? (
-              <select id={`${spec.name}-${f.name}`} name={f.name} required={f.required}>
-                <option value="">Please choose…</option>
-                {f.options?.map((o) => <option value={o}>{o}</option>)}
-              </select>
-            ) : (
-              <input
-                id={`${spec.name}-${f.name}`}
-                name={f.name}
-                type={f.type}
-                required={f.required}
-                accept={f.accept}
-                multiple={f.multiple}
-                autocomplete={
-                  f.name === 'name'
-                    ? 'name'
-                    : f.name === 'email'
-                      ? 'email'
-                      : f.name === 'phone'
-                        ? 'tel'
-                        : f.name === 'address'
-                          ? 'street-address'
-                          : undefined
-                }
-              />
-            )}
+          if (f.type === 'checkbox') {
+            return (
+              <p class="nf__field nf__field--wide nf__consent">
+                <span class="nf__check">
+                  <input id={id} name={f.name} type="checkbox" value="yes" required={f.required} />
+                  {f.labelHtml ? (
+                    <label class="nf__check-label" for={id} set:html={f.labelHtml} />
+                  ) : (
+                    <label class="nf__check-label" for={id}>
+                      {f.label}
+                    </label>
+                  )}
+                </span>
+                {f.hint && <span class="nf__consent-text">{f.hint}</span>}
+              </p>
+            );
+          }
 
-            {f.hint && <span class="nf__hint">{f.hint}</span>}
-          </p>
-        ))
+          return (
+            <p class={`nf__field${wide ? ' nf__field--wide' : ''}`}>
+              <label class="nf__label" for={id}>
+                {f.label}
+                {f.required && <abbr class="nf__req" title="required">*</abbr>}
+              </label>
+
+              {f.type === 'textarea' ? (
+                <textarea id={id} name={f.name} rows="5" required={f.required} />
+              ) : f.type === 'select' ? (
+                <select id={id} name={f.name} required={f.required}>
+                  <option value="">Please choose…</option>
+                  {f.options?.map((o) => <option value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input
+                  id={id}
+                  name={f.name}
+                  type={f.type}
+                  required={f.required}
+                  accept={f.accept}
+                  multiple={f.multiple}
+                  autocomplete={autocompleteFor(f.name)}
+                />
+              )}
+
+              {f.hint && <span class="nf__hint">{f.hint}</span>}
+            </p>
+          );
+        })
       }
     </div>
 
@@ -112,20 +145,41 @@ const hasFile = spec.fields.some((f) => f.type === 'file');
 
 <script is:inline>
   (function () {
-    // Copy the session's first-touch attribution into this form's hidden
-    // fields. Runs per form so multiple forms on one page all get filled.
+    // Fill this form's hidden attribution fields from the stored first touch.
     var attr = {};
     try {
-      attr = JSON.parse(sessionStorage.getItem('ll_attr') || '{}');
+      var raw = localStorage.getItem('ll_attr');
+      if (raw) attr = JSON.parse(raw) || {};
     } catch (e) {
-      /* storage unavailable — post the form without attribution */
+      /* storage unavailable — post without attribution */
     }
-    attr.submitted_from = window.location.pathname;
+    attr.page_submitted_from = window.location.pathname;
+    attr.user_agent = navigator.userAgent;
 
     var inputs = document.querySelectorAll('input[data-attr]');
     for (var i = 0; i < inputs.length; i++) {
       var k = inputs[i].getAttribute('data-attr');
-      if (attr[k]) inputs[i].value = attr[k];
+      var v = attr[k];
+      // Never post the literal string "undefined" — the old form did, and it
+      // poisoned 493 GCLID values.
+      if (v === undefined || v === null || v === 'undefined') continue;
+      inputs[i].value = String(v);
+    }
+
+    // Enforce the original's 5-photo limit.
+    var forms = document.querySelectorAll('form[data-max-files]');
+    for (var j = 0; j < forms.length; j++) {
+      (function (form) {
+        var max = parseInt(form.getAttribute('data-max-files'), 10);
+        var file = form.querySelector('input[type="file"]');
+        if (!file || !max) return;
+        file.addEventListener('change', function () {
+          if (file.files && file.files.length > max) {
+            alert('Please choose no more than ' + max + ' photos.');
+            file.value = '';
+          }
+        });
+      })(forms[j]);
     }
   })();
 </script>
@@ -179,7 +233,7 @@ const hasFile = spec.fields.some((f) => f.type === 'file');
     text-decoration: none;
     margin-left: 2px;
   }
-  .nf input,
+  .nf input:not([type='checkbox']),
   .nf select,
   .nf textarea {
     width: 100%;
@@ -189,7 +243,9 @@ const hasFile = spec.fields.some((f) => f.type === 'file');
     background: var(--bg);
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-sm);
-    transition: border-color var(--transition), box-shadow var(--transition);
+    transition:
+      border-color var(--transition),
+      box-shadow var(--transition);
   }
   .nf textarea {
     resize: vertical;
@@ -208,6 +264,33 @@ const hasFile = spec.fields.some((f) => f.type === 'file');
   .nf__hint {
     font-size: 0.85rem;
     color: var(--muted);
+  }
+  .nf__consent {
+    gap: 8px;
+    margin-top: var(--space-2xs);
+  }
+  .nf__check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .nf__check input[type='checkbox'] {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    flex: none;
+    accent-color: var(--accent);
+  }
+  .nf__check-label {
+    font-size: 0.95rem;
+    color: var(--ink);
+  }
+  /* TCPA wording — small, but it must stay legible. */
+  .nf__consent-text {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: var(--measure);
   }
   .nf__actions {
     display: flex;

@@ -52,14 +52,17 @@ export const site = {
  * Form keys. The forms themselves are defined in `src/lib/forms.ts` and posted
  * to Netlify Forms; nothing third-party is embedded any more.
  */
-export type FormKey = 'contact' | 'quote' | 'estimate' | 'referral';
+export type FormKey = 'quote' | 'referral';
 
 /** Maps the original Gravity Forms IDs onto the form keys above. */
 export const gravityFormMap: Record<string, FormKey> = {
-  '1': 'contact',
-  '2': 'estimate',
-  '3': 'estimate',
-  '4': 'quote',
-  '5': 'contact',
-  '6': 'referral',
+  '4': 'quote', // "Get a Quote" — 1,733 entries
+  '6': 'referral', // "Referral Form" — 5 entries
+  // #1/#2/#3/#5 (Test, Schedule Estimate, old Contact) were retired in
+  // WordPress and no page embeds them. Mapped to the live lead form so a
+  // stray shortcode can never render nothing.
+  '1': 'quote',
+  '2': 'quote',
+  '3': 'quote',
+  '5': 'quote',
 };

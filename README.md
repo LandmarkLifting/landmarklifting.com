@@ -204,37 +204,91 @@ The original used Gravity Forms, which has no static equivalent. Forms are now
 third-party script. Definitions live in `src/lib/forms.ts`; `NetlifyForm.astro`
 renders them.
 
-| Key | Was | Appears on |
-| --- | --- | --- |
-| `quote` | Gravity Forms #4 "Get a Quote" | 66 pages, via the "Contact Block" reusable block |
-| `referral` | Gravity Forms #6 "Referral Form" | `/referral-program/` |
-| `contact` | Gravity Forms #5 "Contact" | defined, no live embed |
-| `estimate` | Gravity Forms #2 "Schedule Estimate" | defined, no live embed |
+Fields, labels, options, required flags and redirects were recovered from the
+September 2026 backup — `wp_gf_form_meta` for the definitions, cross-checked
+against 1,733 real entries in `wp_gf_entry`.
 
-**The field specs are a reconstruction, not a migration.** Gravity Forms kept
-its fields in `wp_gf_form_meta`, which was never carried into this repo — only
-the form names and IDs survived, in `gravityFormMap`. The real field JSON is
-still recoverable from the backup's SQL dump if exact parity is ever needed.
+| Key | Was | Entries | Appears on | Redirects to |
+| --- | --- | --- | --- | --- |
+| `quote` | GF #4 "Get a Quote" | 1,733 | 65 pages, via the "Contact Block" reusable block | `/quote-page-thank-you/` |
+| `referral` | GF #6 "Referral Form" | 5 | `/referral-program/` | `/referral-form-thank-you/` |
+
+Gravity Forms set the redirect **per form, not per page** — Get a Quote always
+went to `/quote-page-thank-you/` wherever it was embedded.
+`/contact-thank-you/` and `/front-page-form-thank-you/` belong to forms that are
+no longer embedded; both pages are still built, but nothing routes to them.
+
+Schedule Estimate (#2), the old Contact (#5) and Test were retired in WordPress
+— no page embedded them, so they are deliberately not rebuilt. `gravityFormMap`
+points their IDs at `quote` so a stray shortcode can never render nothing.
 
 Netlify registers a form by parsing the deployed HTML at deploy time, so every
-field must exist in the static markup — including hidden ones. A field injected
+field must exist in the static markup — hidden ones included. A field injected
 by JavaScript alone is never registered and its value is dropped on submit.
+
+**Two things carried over verbatim and should not be reworded casually:** the
+four "Service Needed?" options (the only values across 1,733 entries), and the
+TCPA consent wording in `forms.ts`, which is the legal basis for texting a lead.
+
+**One field pair is guesswork.** Referral fields 9 and 10 were required but
+*unlabelled* in Gravity Forms, so their intent is not recoverable from the dump.
+They are labelled by inference and flagged in `forms.ts`.
 
 ### Attribution
 
-The site runs Google Ads (`AW-664651796`) and a Meta Pixel, so every form posts
-a block of hidden attribution fields: the five `utm_*` parameters, `gclid`,
-`gbraid`, `wbraid`, `fbclid`, plus `first_landing_page`, `referrer` and
-`submitted_from`.
+The old form carried five hidden fields — `utmcsr`, `utmcmd`, `utmccn`,
+`utmctr`, `utmgclid` — holding Google Analytics `__utmz` cookie values
+(`google`, `organic`, `(direct)`, `(not set)`), **not** raw URL parameters.
+That is why 65% of entries had attribution although most visitors submit from a
+clean URL: the ad click lands on a service page, and the form is submitted later
+from `/get-a-quote/`.
 
-`Attribution.astro` records these **once per session, on first touch**, into
-`sessionStorage`. An ad click rarely lands on the page with the form on it — it
-lands on a service or location page, and the visitor submits later from
-`/contact/`, by which point the query string is gone. First touch wins, so an
-internal page view never overwrites the campaign that brought them in.
+`Attribution.astro` therefore captures on **first landing** and persists to
+`localStorage` with a **90-day expiry**, matching the old GA window. First touch
+wins; later page views never overwrite it. Where a parameter is absent the
+source and medium are derived from `document.referrer`, falling back to
+`(direct)` / `(none)`.
 
-Submissions appear under **Forms** in the Netlify dashboard. Notification
-emails are configured there, not in this repo.
+Names are modernised, and `utm_content`, `gbraid`/`wbraid` and the page fields
+are new:
+
+`utm_source` `utm_medium` `utm_campaign` `utm_term` `utm_content` `gclid`
+`gbraid` `wbraid` `landing_page` `referrer` `page_submitted_from` `user_agent`
+
+A missing value posts as **empty**. The old form stringified an undefined
+variable and wrote the literal text `undefined` 52 times into Source, 400 into
+Keyword and 493 into GCLID; `clean()` in `Attribution.astro` exists to prevent
+exactly that.
+
+The referral form has no attribution block, matching the original.
+
+### Spam
+
+The original used Cloudflare Turnstile, which needs a site key and a server to
+verify against. These forms rely on Netlify's own spam filtering plus an
+off-screen honeypot (`bot-field`). Add `data-netlify-recaptcha` if more is
+needed.
+
+### Still to rewire, outside this repo
+
+Gravity Forms handled delivery; Netlify does not know about any of it.
+
+- **Notification email** went to `brookelynne@landmarklifting.com`, subject
+  `New submission from {form_title}`, with reply-to set to the submitter — worth
+  keeping, it makes replying one click. The referral form also notified
+  `greg@lostsearchmedia.com`. Configure under **Site configuration →
+  Notifications**, per form.
+- **Zapier**: three webhook feeds ran off Get a Quote, including **"GF to
+  Jobber"**, which pushed leads into Jobber. *Until this is reconnected as an
+  outgoing webhook on the Netlify form, new leads will not reach Jobber.* The
+  URLs are in `wp_gf_addon_feed` and the Zapier account, and are deliberately
+  not committed here — anyone holding one can post into the Zap.
+- **Submission quota**: the Netlify free tier allows 100 submissions/month. The
+  old form averaged well above that, so check the plan before launch.
+
+Gravity Forms also recorded IP, user agent and timestamp on every entry. Netlify
+records IP and timestamp itself; `user_agent` is posted as a hidden field, and
+`page_submitted_from` replaces GF's `source_url`.
 
 ## Service-area map
 

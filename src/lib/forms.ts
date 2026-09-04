@@ -1,80 +1,92 @@
 /**
- * Form definitions for the Netlify Forms rebuild.
+ * Form definitions, rebuilt from the WordPress backup.
  *
- * The original site used Gravity Forms. Its field definitions lived in the
- * WordPress `wp_gf_form_meta` table and were NOT carried into this repo — only
- * the form names and IDs survived, in `gravityFormMap`. The specs below are
- * therefore a considered reconstruction for a concrete-lifting contractor, not
- * a transcription of the originals. If exact parity matters, the real field
- * JSON is still recoverable from the backup's SQL dump.
+ * Fields, labels, options, required flags and redirects all come from
+ * `wp_gf_form_meta` in the September 2026 dump, cross-checked against 1,733
+ * real entries in `wp_gf_entry`. Only two Gravity Forms were still embedded —
+ * Get a Quote (#4) and Referral (#6). Schedule Estimate, the old Contact form
+ * and Test were retired and are deliberately not rebuilt.
  *
  * Netlify registers a form by parsing the deployed HTML at deploy time, so
- * every field — hidden ones included — must exist in the static markup. Fields
- * injected by JavaScript alone are never registered and their values are
- * silently dropped on submit.
+ * every field — hidden ones included — must exist in the static markup. A field
+ * injected by JavaScript alone is never registered and its value is silently
+ * dropped on submit.
  */
 
 export type FieldType =
   | 'text'
   | 'tel'
   | 'email'
-  | 'date'
   | 'select'
   | 'textarea'
-  | 'file';
+  | 'file'
+  | 'checkbox';
 
 export interface Field {
   name: string;
   label: string;
   type: FieldType;
   required?: boolean;
-  /** Rendered under the input as help text. */
+  /** Help text under the input. On a checkbox, the consent wording. */
   hint?: string;
-  /** Options for `select`. */
+  /** Allows a link in the label; rendered with set:html. */
+  labelHtml?: string;
   options?: string[];
-  /** `file` only — accepted MIME types. */
   accept?: string;
-  /** `file` only — allow selecting several files. */
   multiple?: boolean;
-  /** Span both columns in the two-column grid. */
+  /** `file` only — enforced client-side and stated in the hint. */
+  maxFiles?: number;
+  /** Span both columns of the two-column grid. */
   wide?: boolean;
 }
 
 export interface FormSpec {
-  /** Netlify form name. Submissions are grouped under this in the dashboard. */
+  /** Netlify form name; groups submissions in the dashboard. */
   name: string;
   heading: string;
   intro?: string;
   submitLabel: string;
-  /** Where to send the browser after a successful post. */
+  /** Post-submit redirect, as configured in Gravity Forms. */
   action: string;
+  /** Whether to post the hidden attribution block. */
+  attribution: boolean;
   fields: Field[];
 }
 
-const JOB_TYPES = [
-  'Driveway',
-  'Sidewalk or walkway',
-  'Patio',
-  'Garage floor',
-  'Steps or stairs',
-  'Pool deck',
-  'Void filling',
-  'Commercial or industrial',
-  'Other / not sure',
+/**
+ * "Service Needed?" — exactly the four options the original offered. Not a
+ * guess: these are the only values that appear across 1,733 entries.
+ */
+const SERVICE_OPTIONS = [
+  'Concrete Lifting',
+  'Void Filling',
+  'New Concrete',
+  'Concrete Replacement',
 ];
 
 /**
- * Attribution fields, posted with every form.
+ * TCPA consent wording, kept verbatim from the original form. This is the
+ * legal basis for texting a lead — do not reword it without asking.
+ */
+const CONSENT_DESCRIPTION =
+  'By entering your phone number, you consent to receive messages for this ' +
+  'event via SMS. Message and data rates may apply. Reply STOP to opt out. ' +
+  'By proceeding, you confirm that you have read and agree to Landmark ' +
+  "Lifting's Terms of Use and Privacy Notice.";
+
+/**
+ * Hidden attribution fields.
  *
- * The site runs Google Ads (`AW-664651796`) and a Meta Pixel, so a lead with no
- * source attached cannot be tied back to the campaign that paid for it. These
- * are populated by `Attribution.astro`, which records the FIRST touch of a
- * session — the ad click usually lands on a service or location page, and the
- * form is submitted later from `/contact/` or `/get-a-quote/`, by which point
- * the query string is long gone.
+ * The original captured five (`utmcsr`, `utmcmd`, `utmccn`, `utmctr`,
+ * `utmgclid`) using Google Analytics `__utmz` cookie conventions — values like
+ * `google`, `organic`, `(direct)`, `(not set)`. Names are modernised here, and
+ * `utm_content`, `wbraid`/`gbraid` and the page fields are new.
  *
- * They render as real hidden inputs with empty values so Netlify registers
- * them; the script fills them in on load.
+ * See `Attribution.astro` for how they are filled. Two rules carried over from
+ * the audit of the old entries: attribution must be captured on FIRST landing
+ * and persisted (65% of entries had data although most visitors submit from a
+ * clean URL), and a missing value must post as empty — the old form wrote the
+ * literal string `undefined` 493 times into GCLID alone.
  */
 export const ATTRIBUTION_FIELDS = [
   'utm_source',
@@ -85,129 +97,122 @@ export const ATTRIBUTION_FIELDS = [
   'gclid',
   'gbraid',
   'wbraid',
-  'fbclid',
-  'first_landing_page',
+  'landing_page',
   'referrer',
-  'submitted_from',
+  'page_submitted_from',
+  'user_agent',
 ] as const;
 
-/** Contact details shared by most forms. */
-const contactFields: Field[] = [
-  { name: 'name', label: 'Name', type: 'text', required: true },
-  { name: 'phone', label: 'Phone', type: 'tel', required: true },
-  { name: 'email', label: 'Email', type: 'email', required: true },
-];
-
 export const forms: Record<string, FormSpec> = {
+  /** Gravity Forms #4. 1,733 entries; the site's main lead form. */
   quote: {
     name: 'quote',
     heading: 'Get a quote',
     intro: 'Tell us what needs lifting and we will get back to you with a price.',
-    submitLabel: 'Request my quote',
+    submitLabel: 'Get my quote',
     action: '/quote-page-thank-you/',
+    attribution: true,
     fields: [
-      ...contactFields,
+      { name: 'first_name', label: 'First Name', type: 'text', required: true },
+      { name: 'last_name', label: 'Last Name', type: 'text', required: true },
+      { name: 'email', label: 'Email', type: 'email', required: true },
+      { name: 'phone', label: 'Phone', type: 'tel', required: true },
+      // GF stored one "address" field with four subfields; split out here so
+      // each gets a real label and the right autocomplete hint.
+      { name: 'address_street', label: 'Street Address', type: 'text', required: true },
+      { name: 'address_line2', label: 'Address Line 2', type: 'text' },
+      { name: 'address_city', label: 'City', type: 'text', required: true },
+      { name: 'address_zip', label: 'ZIP Code', type: 'text', required: true },
       {
-        name: 'address',
-        label: 'Service address or city',
-        type: 'text',
+        name: 'service_needed',
+        label: 'Service Needed?',
+        type: 'select',
         required: true,
-        hint: 'Where the concrete is. We serve most of the Wasatch Front.',
-      },
-      { name: 'job_type', label: 'What needs lifting?', type: 'select', options: JOB_TYPES },
-      {
-        name: 'message',
-        label: 'Tell us about the problem',
-        type: 'textarea',
+        options: SERVICE_OPTIONS,
         wide: true,
-        hint: 'How far has it settled? How long has it been sinking?',
+      },
+      {
+        name: 'description',
+        label: 'Describe the work needed and location',
+        type: 'textarea',
+        required: true,
+        wide: true,
       },
       {
         name: 'photos',
-        label: 'Photos of the area',
+        label: 'Photo Upload',
         type: 'file',
-        accept: 'image/*',
+        accept: 'image/jpeg,image/png,image/gif',
         multiple: true,
+        maxFiles: 5,
         wide: true,
-        hint: 'Optional, but photos let us quote far more accurately.',
+        hint: 'Optional. Up to 5 photos (jpg, png or gif) — they let us quote far more accurately.',
       },
-    ],
-  },
-
-  contact: {
-    name: 'contact',
-    heading: 'Contact us',
-    intro: 'Send us a message and we will get straight back to you.',
-    submitLabel: 'Send message',
-    action: '/contact-thank-you/',
-    fields: [
-      { name: 'name', label: 'Name', type: 'text', required: true },
-      { name: 'email', label: 'Email', type: 'email', required: true },
-      { name: 'phone', label: 'Phone', type: 'tel' },
-      { name: 'message', label: 'Message', type: 'textarea', required: true, wide: true },
-    ],
-  },
-
-  estimate: {
-    name: 'estimate',
-    heading: 'Schedule an estimate',
-    intro: 'Pick a day that suits you and we will confirm the time.',
-    submitLabel: 'Request my estimate',
-    action: '/contact-thank-you/',
-    fields: [
-      ...contactFields,
-      { name: 'address', label: 'Service address', type: 'text', required: true },
-      { name: 'job_type', label: 'What needs lifting?', type: 'select', options: JOB_TYPES },
-      { name: 'preferred_date', label: 'Preferred date', type: 'date' },
       {
-        name: 'preferred_time',
-        label: 'Preferred time',
-        type: 'select',
-        options: ['Morning', 'Afternoon', 'Either works'],
+        name: 'consent',
+        label: 'I agree to the privacy policy.',
+        labelHtml: 'I agree to the <a href="/privacy/">privacy policy</a>.',
+        type: 'checkbox',
+        required: true,
+        hint: CONSENT_DESCRIPTION,
+        wide: true,
       },
-      { name: 'notes', label: 'Anything else we should know?', type: 'textarea', wide: true },
     ],
   },
 
+  /** Gravity Forms #6. 5 entries. No attribution fields on the original. */
   referral: {
     name: 'referral',
-    heading: 'Refer someone to us',
+    heading: 'Refer a friend',
     intro: 'Send us their details and we will take good care of them.',
     submitLabel: 'Send referral',
     action: '/referral-form-thank-you/',
+    attribution: false,
     fields: [
-      { name: 'name', label: 'Your name', type: 'text', required: true },
-      { name: 'phone', label: 'Your phone', type: 'tel', required: true },
-      { name: 'email', label: 'Your email', type: 'email', required: true },
-      { name: 'referral_name', label: 'Their name', type: 'text', required: true },
-      { name: 'referral_phone', label: 'Their phone', type: 'tel', required: true },
-      { name: 'referral_email', label: 'Their email', type: 'email' },
+      { name: 'your_name', label: 'Your Name', type: 'text', required: true },
+      { name: 'your_email', label: 'Your Email', type: 'email', required: true },
+      { name: 'your_phone', label: 'Your Text #', type: 'tel', required: true },
+      { name: 'friend_name', label: "Your Friends' Name", type: 'text', required: true },
+      { name: 'friend_email', label: "Your Friends' Email", type: 'email', required: true },
+      { name: 'friend_phone', label: "Your Friends' Phone", type: 'tel', required: true },
+      // Fields 9 and 10 were required but UNLABELLED in Gravity Forms, so their
+      // intent is not recoverable from the dump. Labelled by inference — worth
+      // confirming against a real entry before this goes live.
+      {
+        name: 'friend_location',
+        label: 'Their city or address',
+        type: 'text',
+        required: true,
+      },
       {
         name: 'notes',
-        label: 'How do you know them, and what do they need?',
+        label: 'What do they need doing?',
         type: 'textarea',
+        required: true,
         wide: true,
+      },
+      {
+        name: 'photos',
+        label: 'Photo Upload',
+        type: 'file',
+        accept: 'image/jpeg,image/png,image/gif',
+        multiple: true,
+        maxFiles: 5,
+        wide: true,
+        hint: 'Optional.',
       },
     ],
   },
 };
 
 /**
- * Per-page thank-you overrides.
+ * Post-submit destination.
  *
- * WordPress had a separate thank-you page for each place the quote form
- * appeared, and those pages are all still built, so the same form keeps
- * sending visitors to the page that matches where they submitted it.
+ * Gravity Forms configured this per form, not per page: Get a Quote always went
+ * to `/quote-page-thank-you/` wherever it was embedded. `/contact-thank-you/`
+ * and `/front-page-form-thank-you/` belong to forms that are no longer embedded
+ * — both pages are still built, but nothing routes to them.
  */
-const THANK_YOU_BY_PATH: Record<string, string> = {
-  '/': '/front-page-form-thank-you/',
-  '/contact/': '/contact-thank-you/',
-  '/get-a-quote/': '/quote-page-thank-you/',
-};
-
-/** The post-submit destination for `key` when submitted from `pathname`. */
-export function actionFor(key: string, pathname: string): string {
-  const spec = forms[key];
-  if (key === 'quote' && THANK_YOU_BY_PATH[pathname]) return THANK_YOU_BY_PATH[pathname];
-  return spec?.action ?? '/contact-thank-you/';
+export function actionFor(key: string): string {
+  return forms[key]?.action ?? '/quote-page-thank-you/';
 }
