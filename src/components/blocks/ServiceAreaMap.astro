@@ -1,0 +1,164 @@
+---
+/**
+ * The service-area map. The original lived inside a raw-HTML block as a whole
+ * nested HTML document; scripts injected that way never run, so it is rebuilt
+ * here as a real component. Marker data lives in src/data/service-areas.json.
+ *
+ * Without JavaScript (or if the CDN is blocked) the list of areas below the
+ * map still links to every city page.
+ */
+import locations from '../../data/service-areas.json';
+
+const LEAFLET_VERSION = '1.9.4';
+---
+<div class="area-map">
+  <div
+    id="service-area-map"
+    class="area-map__canvas"
+    role="application"
+    aria-label="Map of Landmark Lifting service areas in Utah"
+    data-locations={JSON.stringify(locations)}
+  ></div>
+
+  <ul class="area-map__list">
+    {locations.map((l) => (
+      <li><a href={l.href}>{l.name}</a></li>
+    ))}
+  </ul>
+</div>
+
+<link
+  rel="stylesheet"
+  href={`https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css`}
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+
+<script>
+  const el = document.getElementById('service-area-map');
+  if (el) {
+    const locations = JSON.parse(el.dataset.locations || '[]');
+
+    const load = () =>
+      new Promise((resolve, reject) => {
+        if ((window as any).L) return resolve((window as any).L);
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        s.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+        s.crossOrigin = '';
+        s.onload = () => resolve((window as any).L);
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+
+    // Only pay for the map library once the map is close to the viewport.
+    const start = () => {
+      load()
+        .then((L: any) => {
+          const map = L.map(el, { scrollWheelZoom: false });
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          }).addTo(map);
+
+          const style = {
+            radius: 7,
+            color: '#b30000',
+            weight: 1,
+            fillColor: '#e60000',
+            fillOpacity: 0.9,
+          };
+
+          const markers = locations.map((loc: any) => {
+            const marker = L.circleMarker([loc.lat, loc.lng], style).addTo(map);
+            marker.bindPopup(`<a href="${loc.href}">${loc.name}</a>`);
+            marker.bindTooltip(loc.name);
+            return marker;
+          });
+
+          if (markers.length) {
+            const group = L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+            map.setZoom(Math.min(map.getZoom() + 1, 19));
+          }
+          el.classList.add('is-ready');
+        })
+        .catch(() => {
+          // Leaflet unavailable — the linked list below is the fallback.
+          el.classList.add('is-unavailable');
+        });
+    };
+
+    // Load lazily, but never depend on IntersectionObserver alone — it does not
+    // fire in every environment. A geometry check on scroll/resize, plus a
+    // timed backstop, guarantee the map still initialises.
+    let started = false;
+    const startOnce = () => {
+      if (started) return;
+      started = true;
+      cleanup();
+      start();
+    };
+    const nearViewport = () => {
+      const r = el.getBoundingClientRect();
+      return r.top < window.innerHeight + 300 && r.bottom > -300;
+    };
+    const onScroll = () => {
+      if (nearViewport()) startOnce();
+    };
+    const cleanup = () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      clearTimeout(backstop);
+      io?.disconnect();
+    };
+
+    let io: IntersectionObserver | null = null;
+    if ('IntersectionObserver' in window) {
+      io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) startOnce();
+        },
+        { rootMargin: '300px' },
+      );
+      io.observe(el);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    const backstop = setTimeout(startOnce, 2500);
+    onScroll();
+  }
+</script>
+
+<style>
+  .area-map {
+    margin-bottom: 24px;
+  }
+  .area-map__canvas {
+    width: 100%;
+    height: 500px;
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .area-map__canvas.is-unavailable {
+    display: none;
+  }
+  .area-map__list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0;
+    display: grid;
+    gap: 6px 18px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    font-size: 15px;
+  }
+  .area-map__list li {
+    margin: 0;
+  }
+
+  @media (max-width: 690px) {
+    .area-map__canvas {
+      height: 360px;
+    }
+  }
+</style>

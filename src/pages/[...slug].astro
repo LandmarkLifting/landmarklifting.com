@@ -1,0 +1,196 @@
+---
+/**
+ * Renders every page and post recovered from WordPress at its original
+ * permalink. The front page and the blog index have their own routes.
+ */
+import type { GetStaticPaths } from 'astro';
+import Base from '../layouts/Base.astro';
+import Blocks from '../components/Blocks.astro';
+import PageContent from '../components/PageContent.astro';
+import ThankYou from '../components/ThankYou.astro';
+import PageHero from '../components/PageHero.astro';
+import { parseShortcodes } from '../lib/shortcode';
+import { demoteContentH1 } from '../lib/render';
+import {
+  BLOG_PAGE_ID,
+  FRONT_PAGE_ID,
+  docById,
+  mediaUrl,
+  permalink,
+  usableAsHero,
+  posts,
+  routableDocs,
+  type Doc,
+} from '../lib/content';
+import { site } from '../lib/site';
+
+export const getStaticPaths: GetStaticPaths = () => {
+  return routableDocs
+    .filter((d) => d.id !== FRONT_PAGE_ID && d.id !== BLOG_PAGE_ID)
+    .map((doc) => ({
+      params: { slug: permalink(doc).replace(/^\/|\/$/g, '') },
+      props: { doc },
+    }));
+};
+
+interface Props {
+  doc: Doc;
+}
+const { doc } = Astro.props;
+
+// The hero already provides the page's <h1>.
+const tree = parseShortcodes(demoteContentH1(doc.content || ''));
+// The page header's own background wins; a featured image only stands in when
+// it is actually a photograph big enough to fill the band.
+const heroImage =
+  mediaUrl(doc.page_header.bg) ||
+  (usableAsHero(doc.featured_image) ? mediaUrl(doc.featured_image) : null);
+const ogImage = mediaUrl(doc.seo.og_image) || mediaUrl(doc.featured_image);
+
+// Breadcrumbs follow the page hierarchy WordPress used.
+const crumbs: { label: string; href: string }[] = [{ label: 'Home', href: '/' }];
+const chain: Doc[] = [];
+let cursor: Doc | undefined = doc;
+const guard = new Set<string>();
+while (cursor && !guard.has(cursor.id)) {
+  guard.add(cursor.id);
+  chain.unshift(cursor);
+  cursor = cursor.parent && cursor.parent !== '0' ? docById(cursor.parent) : undefined;
+}
+if (doc.type === 'post') crumbs.push({ label: 'Blog', href: '/blog/' });
+for (const c of chain) crumbs.push({ label: c.title, href: permalink(c) });
+
+const dateFmt = (v: string) =>
+  new Date(v.replace(' ', 'T')).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+const isPost = doc.type === 'post';
+/** Post-submission confirmation pages get a layout built for that moment. */
+const isThankYou = doc.type === 'page' && /thank-you/.test(doc.slug);
+
+const schema = isPost
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: doc.title,
+      datePublished: doc.date.replace(' ', 'T'),
+      dateModified: doc.modified.replace(' ', 'T'),
+      image: ogImage ? new URL(ogImage, site.url).href : undefined,
+      author: { '@type': 'Organization', name: site.name },
+      publisher: { '@id': `${site.url}/#organization` },
+      mainEntityOfPage: new URL(permalink(doc), site.url).href,
+    }
+  : {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: crumbs.map((c, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: c.label.replace(/<[^>]+>/g, ''),
+        item: new URL(c.href, site.url).href,
+      })),
+    };
+
+const title = doc.seo.title || `${doc.title} | ${site.name}`;
+const related = isPost ? posts.filter((p) => p.id !== doc.id).slice(0, 3) : [];
+---
+<Base
+  title={title}
+  description={doc.seo.description}
+  canonical={doc.seo.canonical || undefined}
+  ogImage={ogImage}
+  ogTitle={doc.seo.og_title || undefined}
+  ogDescription={doc.seo.og_description || undefined}
+  noindex={Boolean(doc.seo.noindex)}
+  type={isPost ? 'article' : 'website'}
+  published={isPost ? doc.date.replace(' ', 'T') : undefined}
+  modified={isPost ? doc.modified.replace(' ', 'T') : undefined}
+  schema={schema}
+>
+  <PageHero
+    title={doc.title}
+    header={{ ...doc.page_header, bg: heroImage }}
+    crumbs={crumbs}
+    meta={isPost ? dateFmt(doc.date) : undefined}
+  />
+
+  {doc.custom_css && <style set:html={doc.custom_css} />}
+
+  <div class={isPost ? 'post-body' : 'page-body'}>
+    {isPost ? (
+      <div class="container">
+        <article class="prose">
+          <Blocks nodes={tree} />
+        </article>
+      </div>
+    ) : isThankYou ? (
+      <ThankYou nodes={tree} />
+    ) : (
+      <PageContent nodes={tree} />
+    )}
+  </div>
+
+  {related.length > 0 && (
+    <aside class="container related">
+      <h2>More from the blog</h2>
+      <ul class="related__list">
+        {related.map((p) => (
+          <li><a href={permalink(p)} set:html={p.title} /></li>
+        ))}
+      </ul>
+    </aside>
+  )}
+</Base>
+
+<style>
+  .post-body {
+    padding: var(--section-y) 0 var(--space-xl);
+  }
+  .prose {
+    max-width: 68ch;
+    margin: 0 auto;
+    font-size: var(--step-lead);
+  }
+  /* Give the article's own imagery a little more presence. */
+  .prose :global(.figure),
+  .prose :global(.compare),
+  .prose :global(.embed) {
+    margin-block: var(--space-lg);
+  }
+
+  .related {
+    padding-bottom: var(--space-xl);
+  }
+  .related h2 {
+    font-size: var(--step-h3);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--line);
+    margin-bottom: var(--space-md);
+  }
+  .related__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+  .related__list li {
+    margin: 0;
+  }
+  .related__list a {
+    display: block;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    line-height: 1.35;
+    color: var(--ink);
+    transition: color var(--transition);
+  }
+  .related__list a:hover {
+    color: var(--accent);
+  }
+</style>

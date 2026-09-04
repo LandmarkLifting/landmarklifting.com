@@ -1,0 +1,36 @@
+---
+/** Salient page_submenu — sticky in-page jump nav. */
+import type { Node } from '../../lib/shortcode';
+
+interface Props {
+  attrs: Record<string, string>;
+  nodes: Node[];
+}
+const { attrs, nodes } = Astro.props;
+const links = nodes.filter(
+  (n): n is Extract<Node, { kind: 'tag' }> => n.kind === 'tag' && n.name === 'page_link',
+);
+const style = [
+  attrs.bg_color ? `background-color:${attrs.bg_color}` : '',
+  attrs.link_color ? `--submenu-link:${attrs.link_color}` : '',
+].filter(Boolean).join(';');
+---
+{
+  links.length > 0 && (
+    <nav class="submenu" style={style} aria-label="Section navigation">
+      <ul>
+        {links.map((l) => (
+          <li>
+            <a href={l.attrs.link_url || '#'} set:html={l.attrs.title ?? ''} />
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<style>
+  .submenu a {
+    color: var(--submenu-link, #fff);
+  }
+</style>

@@ -1,0 +1,50 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../lib/site';
+---
+<Base title={`Page not found | ${site.name}`} noindex>
+  <div class="container notfound">
+    <h1>Page not found</h1>
+    <p>That page has moved or no longer exists. Try one of these instead:</p>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/concrete-lifting-utah/">Concrete Lifting</a></li>
+      <li><a href="/service-areas/">Areas We Serve</a></li>
+      <li><a href="/gallery/">Gallery</a></li>
+      <li><a href="/contact/">Contact</a></li>
+    </ul>
+    <p><a class="btn btn--accent btn--large" href={site.phoneHref}>Call {site.phone}</a></p>
+  </div>
+</Base>
+
+<style>
+  .notfound {
+    padding: clamp(3.5rem, 2rem + 6vw, 6.5rem) 0;
+    max-width: 640px;
+  }
+  .notfound ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-lg);
+  }
+  .notfound li { margin: 0; }
+  .notfound ul a {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--ink-2);
+    transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+  }
+  .notfound ul a:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+</style>

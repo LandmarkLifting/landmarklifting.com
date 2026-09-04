@@ -1,0 +1,191 @@
+---
+import { menu } from '../lib/content';
+import { site } from '../lib/site';
+import Icon from './Icon.astro';
+
+const year = new Date().getFullYear();
+// The footer menu as it was configured in WordPress.
+const footerMenu = menu('footer-menu');
+// Brand marks come from Bootstrap Icons (MIT) rather than hand-drawn paths.
+const socials = [
+  ['Facebook', site.social.facebook, 'facebook'],
+  ['YouTube', site.social.youtube, 'youtube'],
+  ['Instagram', site.social.instagram, 'instagram'],
+  ['LinkedIn', site.social.linkedin, 'linkedin'],
+  ['TikTok', site.social.tiktok, 'tiktok'],
+] as const;
+---
+<footer class="site-footer">
+  <div class="container container--wide">
+    <div class="site-footer__grid">
+      {site.locations.map((loc) => (
+        <div class="site-footer__col">
+          <h4>{loc.name}</h4>
+          <p>
+            <a href={loc.phoneHref}>{loc.phone}</a><br />
+            {loc.lines.map((line) => (<>{line}<br /></>))}
+          </p>
+        </div>
+      ))}
+      <div class="site-footer__col">
+        <h4>Explore</h4>
+        <ul class="site-footer__links">
+          {footerMenu.map((item) => (
+            <li><a href={item.href ?? '#'} set:html={item.label} /></li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="site-footer__col site-footer__col--end">
+        <h3><a href="/licensed-insured/">Licensed &amp; Insured</a></h3>
+        <p><a href={`mailto:${site.email}`}>{site.email}</a></p>
+        <p class="site-footer__actions">
+          <a class="btn btn--accent btn--medium" href="/get-a-quote/">Get a Quote</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="site-footer__bar">
+    <div class="container container--wide site-footer__bar-inner">
+      <p>&copy; {year} {site.name}. All rights reserved. <a href="/privacy-policy/">Privacy Policy</a> · <a href="/terms-and-conditions/">Terms</a></p>
+      <ul class="site-footer__social">
+        {socials.map(([label, href, icon]) => (
+          <li>
+            <a href={href} target="_blank" rel="noopener" aria-label={label}>
+              <Icon name={icon} set="brand" size={17} />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--ink);
+    color: #fff;
+    margin-top: var(--space-xl);
+    /* A hairline of brand colour separates the footer from the page. */
+    border-top: 3px solid var(--accent);
+  }
+  .site-footer__grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-lg);
+    padding: clamp(2.5rem, 1.6rem + 3.4vw, 4.5rem) 0 var(--space-xl);
+  }
+  .site-footer h3,
+  .site-footer h4 {
+    color: #fff;
+    margin-bottom: var(--space-sm);
+  }
+  .site-footer h4 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+  }
+  .site-footer h3 {
+    font-size: 1.25rem;
+    letter-spacing: 0.02em;
+  }
+  .site-footer p {
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, 0.74);
+    margin-bottom: var(--space-sm);
+  }
+  .site-footer a {
+    color: #fff;
+  }
+  .site-footer a:hover {
+    color: var(--accent);
+  }
+  .site-footer__col--end {
+    text-align: right;
+  }
+  .site-footer__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .site-footer__links li {
+    margin-bottom: var(--space-xs);
+  }
+  .site-footer__links a {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.78);
+  }
+  .site-footer__links a:hover {
+    color: var(--accent);
+  }
+
+  .site-footer__actions {
+    margin-top: var(--space-md);
+  }
+  .site-footer__actions .btn:hover {
+    color: #fff;
+  }
+
+  .site-footer__bar {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .site-footer__bar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-md);
+    flex-wrap: wrap;
+  }
+  .site-footer__bar p {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .site-footer__social {
+    display: flex;
+    gap: var(--space-xs);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .site-footer__social li { margin: 0; }
+  .site-footer__social a {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.85);
+    transition: background-color var(--transition), border-color var(--transition),
+      color var(--transition), transform var(--transition);
+  }
+  .site-footer__social a:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 1180px) {
+    .site-footer__grid { grid-template-columns: repeat(3, 1fr); }
+    .site-footer__col--end { text-align: left; }
+  }
+  @media (max-width: 1000px) {
+    .site-footer__grid { grid-template-columns: repeat(2, 1fr); }
+    .site-footer__col--end { text-align: left; }
+  }
+  @media (max-width: 600px) {
+    .site-footer__grid { grid-template-columns: 1fr; }
+    .site-footer__bar-inner { justify-content: center; text-align: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .site-footer__social a:hover { transform: none; }
+  }
+</style>

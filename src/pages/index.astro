@@ -1,0 +1,32 @@
+---
+/** WordPress front page (page_on_front = 45). */
+import Base from '../layouts/Base.astro';
+import PageContent from '../components/PageContent.astro';
+import { parseShortcodes } from '../lib/shortcode';
+import { FRONT_PAGE_ID, docById, mediaUrl } from '../lib/content';
+import { site } from '../lib/site';
+
+const doc = docById(FRONT_PAGE_ID)!;
+const tree = parseShortcodes(doc.content || '');
+const ogImage = mediaUrl(doc.seo.og_image) || mediaUrl(doc.featured_image);
+const title = doc.seo.title || `${site.name} | ${site.tagline}`;
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: site.name,
+  url: site.url,
+  publisher: { '@id': `${site.url}/#organization` },
+};
+---
+<Base
+  title={title}
+  description={doc.seo.description}
+  ogImage={ogImage}
+  ogTitle={doc.seo.og_title || undefined}
+  ogDescription={doc.seo.og_description || undefined}
+  schema={schema}
+>
+  {doc.custom_css && <style set:html={doc.custom_css} />}
+  <PageContent nodes={tree} />
+</Base>

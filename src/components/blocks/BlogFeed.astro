@@ -1,0 +1,56 @@
+---
+/** Salient nectar_blog — a grid of posts, optionally filtered by category. */
+import { permalink, posts, postsInCategory } from '../../lib/content';
+import { mediaUrl } from '../../lib/content';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+const cat = attrs.category?.trim();
+const list = cat ? postsInCategory(cat) : posts;
+---
+<div class="post-grid">
+  {list.map((p) => {
+    const img = mediaUrl(p.featured_image);
+    return (
+      <article class="post-card">
+        <a href={permalink(p)} class="post-card__link">
+          {img && <img class="post-card__img" src={img} alt="" loading="lazy" decoding="async" />}
+          <h3 class="post-card__title" set:html={p.title} />
+        </a>
+      </article>
+    );
+  })}
+</div>
+
+<style>
+  .post-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    margin-bottom: 20px;
+  }
+  .post-card__link {
+    display: block;
+    color: inherit;
+  }
+  .post-card__img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    transition: transform var(--transition);
+  }
+  .post-card__link:hover .post-card__img {
+    transform: scale(1.03);
+  }
+  .post-card__title {
+    font-size: 20px;
+    line-height: 26px;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .post-card__link:hover .post-card__title {
+    color: var(--accent);
+  }
+</style>

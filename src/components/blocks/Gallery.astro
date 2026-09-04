@@ -1,0 +1,37 @@
+---
+/** WPBakery vc_gallery, image_grid type. */
+import { mediaAlt, mediaUrl } from '../../lib/content';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+const ids = (attrs.images || '').split(',').map((s) => s.trim()).filter(Boolean);
+const cols = ['2', '3', '4'].includes(attrs.layout) ? attrs.layout : '3';
+const images = ids
+  .map((id) => ({ id, src: mediaUrl(id), alt: mediaAlt(id, '') }))
+  .filter((i) => i.src);
+---
+{
+  images.length > 0 && (
+    <div class="gallery-grid" data-cols={cols}>
+      {images.map((img) => (
+        <a href={img.src} class="gallery-grid__item">
+          <img src={img.src} alt={img.alt} loading="lazy" decoding="async" />
+        </a>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  .gallery-grid__item {
+    display: block;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+  .gallery-grid__item img {
+    transition: transform var(--transition);
+  }
+  .gallery-grid__item:hover img {
+    transform: scale(1.04);
+  }
+</style>

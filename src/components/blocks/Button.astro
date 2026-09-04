@@ -1,0 +1,31 @@
+---
+/** Salient nectar_btn. */
+import { buttonClasses, internalHref, isExternal } from '../../lib/render';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+const href = internalHref(attrs.url);
+const external = isExternal(href);
+const override = attrs.color_override && /^#/.test(attrs.color_override) ? attrs.color_override : null;
+const style = override ? `background-color:${override};border-color:${override}` : undefined;
+const align = attrs.alignment && attrs.alignment !== 'default' ? `btn-wrap--${attrs.alignment}` : '';
+---
+<span class={`btn-wrap ${align}`}>
+  <a
+    class={buttonClasses(attrs)}
+    href={href}
+    style={style}
+    target={external || attrs.link_target === '_blank' ? '_blank' : undefined}
+    rel={external ? 'noopener' : undefined}
+    set:html={attrs.text ?? ''}
+  />
+</span>
+
+<style>
+  .btn-wrap {
+    display: block;
+    margin: 8px 0 20px;
+  }
+  .btn-wrap--center { text-align: center; }
+  .btn-wrap--right { text-align: right; }
+</style>

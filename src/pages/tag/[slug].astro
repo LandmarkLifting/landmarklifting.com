@@ -1,0 +1,96 @@
+---
+/**
+ * Tag archives. WordPress exposed /tag/<slug>/ and Yoast had them indexable,
+ * so the ones that still have posts are rebuilt here; empty tags are
+ * redirected to the blog (see scripts/build-redirects.mjs).
+ */
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import PageHero from '../../components/PageHero.astro';
+import { mediaUrl, permalink, postsWithTag, tags } from '../../lib/content';
+import { site } from '../../lib/site';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  tags().map((t) => ({ params: { slug: t.slug }, props: { tag: t } }));
+
+interface Props {
+  tag: { name: string; slug: string; count: number };
+}
+const { tag } = Astro.props;
+const list = postsWithTag(tag.slug);
+---
+<Base
+  title={`${tag.name} | ${site.name}`}
+  description={`Articles tagged “${tag.name}” from ${site.name}, Utah's concrete lifting experts.`}
+>
+  <PageHero
+    title={tag.name}
+    header={{
+      bg: null, bg_color: null, height: null, font_color: null,
+      alignment: null, parallax: null, subtitle: 'Tagged',
+    }}
+    crumbs={[
+      { label: 'Home', href: '/' },
+      { label: 'Blog', href: '/blog/' },
+      { label: tag.name, href: `/tag/${tag.slug}/` },
+    ]}
+  />
+
+  <div class="container tag-index">
+    <ul class="tag-list">
+      {list.map((p) => {
+        const img = mediaUrl(p.featured_image);
+        return (
+          <li>
+            <a href={permalink(p)}>
+              {img && <img src={img} alt="" loading="lazy" decoding="async" />}
+              <span set:html={p.title} />
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+    <p class="tag-index__back"><a href="/blog/">← All articles</a></p>
+  </div>
+</Base>
+
+<style>
+  .tag-index {
+    padding: var(--section-y) 0 var(--space-xl);
+  }
+  .tag-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-lg);
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .tag-list li { margin: 0; }
+  .tag-list a {
+    display: block;
+    color: inherit;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.35;
+    transition: color var(--transition);
+  }
+  .tag-list img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-sm);
+    transition: box-shadow var(--transition);
+  }
+  .tag-list a:hover { color: var(--accent); }
+  .tag-list a:hover img { box-shadow: var(--shadow); }
+  .tag-index__back a {
+    font-family: var(--font-head);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.875rem;
+  }
+</style>

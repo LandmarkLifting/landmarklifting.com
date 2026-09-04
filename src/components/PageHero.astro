@@ -1,0 +1,171 @@
+---
+/**
+ * Salient's page header: the page title over a background image, with the
+ * optional subtitle stored in _nectar_header_subtitle.
+ */
+import { mediaUrl } from '../lib/content';
+import type { PageHeader } from '../lib/content';
+
+interface Props {
+  title: string;
+  header: PageHeader;
+  /** Breadcrumb trail, innermost last. */
+  crumbs?: { label: string; href: string }[];
+  meta?: string;
+}
+const { title, header, crumbs = [], meta } = Astro.props;
+
+const bg = mediaUrl(header.bg);
+const height = header.height && /^\d+$/.test(header.height) ? `${header.height}px` : null;
+
+/**
+ * The original set a dark font colour on some heroes, which meant a near-white
+ * scrim over the photo: it bleached the image and left the type low-contrast.
+ * Every hero now uses one confident treatment — the photo, a dark gradient that
+ * keeps detail on the right, and white type.
+ *
+ * `focus` nudges the crop for backgrounds whose subject sits off-centre.
+ */
+const focus =
+  header.alignment === 'left'
+    ? 'left center'
+    : header.alignment === 'right'
+      ? 'right center'
+      : 'center center';
+---
+<section
+  class={`hero ${bg ? 'hero--image' : 'hero--plain'}`}
+  style={[
+    bg ? `background-image:url('${bg}')` : '',
+    height ? `min-height:${height}` : '',
+    `background-position:${focus}`,
+  ].filter(Boolean).join(';')}
+>
+  {bg && <div class="hero__scrim" aria-hidden="true" />}
+  <div class="container container--wide hero__inner">
+    {header.subtitle && <p class="hero__eyebrow" set:html={header.subtitle} />}
+    <h1 class="hero__title" set:html={title} />
+    {meta && <p class="hero__meta">{meta}</p>}
+    {crumbs.length > 0 && (
+      <nav class="hero__crumbs" aria-label="Breadcrumb">
+        <ol>
+          {crumbs.map((c, i) => (
+            <li>
+              {i < crumbs.length - 1 ? <a href={c.href} set:html={c.label} /> : <span aria-current="page" set:html={c.label} />}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )}
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: var(--ink);
+    color: #fff;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(280px, 30vw, 420px);
+    padding: var(--space-xl) 0 var(--space-lg);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .hero--plain {
+    /* No photo: a quiet diagonal wash so the band still has depth. */
+    background-image: radial-gradient(130% 150% at 8% 0%, #35302e 0%, var(--ink) 60%);
+    min-height: clamp(230px, 22vw, 320px);
+  }
+
+  /* Two layers: a wash that guarantees contrast behind the type on the left,
+     and a floor that anchors the breadcrumb — the photo stays legible. */
+  .hero__scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to top, rgba(20, 17, 17, 0.92) 0%, rgba(20, 17, 17, 0) 55%),
+      linear-gradient(105deg, rgba(20, 17, 17, 0.9) 0%, rgba(20, 17, 17, 0.6) 48%, rgba(20, 17, 17, 0.18) 100%);
+  }
+
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+
+  .hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 var(--space-sm);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  .hero__eyebrow::before {
+    content: '';
+    width: 26px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .hero__title {
+    color: #fff;
+    margin: 0;
+    max-width: 18ch;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .hero__meta {
+    margin: var(--space-sm) 0 0;
+    font-size: 0.875rem;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .hero__crumbs ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    list-style: none;
+    margin: var(--space-md) 0 0;
+    padding: 0;
+    font-size: 0.8125rem;
+  }
+  .hero__crumbs li {
+    margin: 0;
+  }
+  .hero__crumbs li + li::before {
+    content: '/';
+    padding-right: 8px;
+    opacity: 0.4;
+  }
+  .hero__crumbs a,
+  .hero__crumbs span {
+    color: rgba(255, 255, 255, 0.72);
+  }
+  .hero__crumbs a:hover {
+    color: var(--accent);
+  }
+  .hero__crumbs [aria-current='page'] {
+    color: #fff;
+  }
+
+  @media (max-width: 690px) {
+    .hero {
+      min-height: 240px;
+      padding: var(--space-lg) 0 var(--space-md);
+    }
+    .hero__title {
+      max-width: none;
+    }
+  }
+</style>

@@ -1,0 +1,289 @@
+---
+/**
+ * Recursively renders the shortcode tree parsed out of the original
+ * WPBakery / Salient page content.
+ */
+import type { Node } from '../lib/shortcode';
+import { decodeRawHtml, parseShortcodes } from '../lib/shortcode';
+import { cleanHtml, color, fontContainer, headingTag, internalHref, isLightColor, isProseHeading, spacing, widthPercent } from '../lib/render';
+import { blocks, mediaAlt, mediaUrl } from '../lib/content';
+
+import Row from './blocks/Row.astro';
+import Figure from './blocks/Figure.astro';
+import AnimatedTitle from './blocks/AnimatedTitle.astro';
+import Button from './blocks/Button.astro';
+import Compare from './blocks/Compare.astro';
+import Toggles from './blocks/Toggles.astro';
+import Gallery from './blocks/Gallery.astro';
+import Cta from './blocks/Cta.astro';
+import Testimonials from './blocks/Testimonials.astro';
+import Tabs from './blocks/Tabs.astro';
+import IconList from './blocks/IconList.astro';
+import TallyForm from './blocks/TallyForm.astro';
+import Submenu from './blocks/Submenu.astro';
+import BlogFeed from './blocks/BlogFeed.astro';
+import NectarIcon from './blocks/NectarIcon.astro';
+import ServiceAreaMap from './blocks/ServiceAreaMap.astro';
+import Self from './Blocks.astro';
+
+interface Props {
+  nodes: Node[];
+}
+const { nodes } = Astro.props;
+
+/**
+ * Fractions that have a `.col--a_b` class in global.css. Those set --col-width
+ * in a stylesheet so the responsive rules can override them; anything else
+ * falls back to an inline width, which cannot be overridden but is rare.
+ */
+const KNOWN_WIDTHS = new Set([
+  '1/1', '1/2', '1/3', '2/3', '1/4', '3/4', '1/5', '2/5', '3/5', '4/5',
+  '1/6', '5/6', '1/12', '5/12', '7/12', '11/12',
+]);
+
+/** Columns and rows carry structural attributes we translate into CSS. */
+function columnStyle(attrs: Record<string, string>) {
+  const styles: string[] = [];
+  const width = (attrs.width || '').replace(/\s/g, '');
+  // Only inline a width the stylesheet has no class for — an inline custom
+  // property would otherwise beat every responsive rule.
+  if (width && !KNOWN_WIDTHS.has(width)) {
+    styles.push(`--col-width:${widthPercent(attrs.width)}`);
+  }
+  // A column that paints a background becomes a card: the colour, padding and
+  // radius go on an inner box so the row's gutter stays visible between cards.
+  const bg = color(attrs.background_color);
+  if (bg) styles.push(`--col-bg:${bg}`);
+  const pad = attrs.column_padding || '';
+  const m = pad.match(/padding-(\d+)-percent/);
+  if (m) styles.push(`--col-pad:${m[1]}%`);
+  if (attrs.border_radius && attrs.border_radius !== 'none') {
+    styles.push(`--col-radius:${attrs.border_radius}`);
+  }
+  return styles.join(';');
+}
+---
+{
+  nodes.map((node) => {
+    if (node.kind === 'html') {
+      return <Fragment set:html={cleanHtml(node.html)} />;
+    }
+
+    const { name, attrs, children } = node;
+
+    switch (name) {
+      // ---- structure ----------------------------------------------------
+      case 'vc_row':
+      case 'vc_row_inner': {
+        // A row whose columns paint backgrounds is a row of cards; they need to
+        // stretch to a common height regardless of the row's placement setting.
+        const hasCards = children.some(
+          (c) =>
+            c.kind === 'tag' &&
+            (c.name === 'vc_column' || c.name === 'vc_column_inner') &&
+            Boolean(color(c.attrs.background_color)),
+        );
+        return (
+          <Row attrs={attrs} inner={name === 'vc_row_inner'} hasCards={hasCards}>
+            <Self nodes={children} />
+          </Row>
+        );
+      }
+
+      case 'vc_column':
+      case 'vc_column_inner': {
+        // A column with its own background must set a readable text colour;
+        // the row's light/dark setting does not know about it.
+        const light = isLightColor(attrs.background_color);
+        const rawWidth = (attrs.width || '').replace(/\s/g, '');
+        const widthClass = KNOWN_WIDTHS.has(rawWidth) ? `col--${rawWidth.replace('/', '_')}` : '';
+        const cls = [
+          'col',
+          widthClass,
+          attrs.centered_text === 'true' ? 'text-center' : '',
+          light === true ? 'col--light-bg' : light === false ? 'col--dark-bg' : '',
+        ].filter(Boolean).join(' ');
+        const boxed = light !== null;
+        return boxed ? (
+          <div class={cls} style={columnStyle(attrs)}>
+            <div class="col__box">
+              <Self nodes={children} />
+            </div>
+          </div>
+        ) : (
+          <div class={cls} style={columnStyle(attrs)}>
+            <Self nodes={children} />
+          </div>
+        );
+      }
+
+      case 'vc_column_text':
+        return (
+          <div class="rich-text">
+            <Self nodes={children} />
+          </div>
+        );
+
+      // ---- text ---------------------------------------------------------
+      case 'vc_custom_heading': {
+        const f = fontContainer(attrs.font_container);
+        const Tag = f.tag as any;
+        const style = [
+          f.color ? `color:${f.color}` : '',
+          f.fontSize ? `font-size:${f.fontSize}` : '',
+          f.lineHeight && f.lineHeight !== '0' ? `line-height:${f.lineHeight}` : '',
+        ].filter(Boolean).join(';');
+        const cls = [f.align ? `text-${f.align}` : '', isProseHeading(attrs.text) ? 'h--prose' : '']
+          .filter(Boolean).join(' ') || undefined;
+        const inner = attrs.link ? (
+          <a href={internalHref(attrs.link.split('|')[0].replace(/^url:/, ''))} set:html={attrs.text} />
+        ) : null;
+        return inner
+          ? <Tag class={cls} style={style}>{inner}</Tag>
+          : <Tag class={cls} style={style} set:html={attrs.text ?? ''} />;
+      }
+
+      case 'nectar_animated_title':
+        return <AnimatedTitle attrs={attrs} />;
+
+      case 'split_line_heading': {
+        const Tag = headingTag(attrs.font_style, 'h2') as any;
+        const style = attrs.text_color ? `color:${attrs.text_color}` : undefined;
+        const cls = [
+          attrs.content_alignment && attrs.content_alignment !== 'default'
+            ? `text-${attrs.content_alignment}` : '',
+          isProseHeading(attrs.text_content) ? 'h--prose' : '',
+        ].filter(Boolean).join(' ') || undefined;
+        return <Tag class={cls} style={style} set:html={attrs.text_content ?? ''} />;
+      }
+
+      case 'nectar_dropcap':
+        return (
+          <span class="dropcap" style={color(attrs.color) ? `color:${color(attrs.color)}` : undefined}>
+            <Self nodes={children} />
+          </span>
+        );
+
+      // ---- media --------------------------------------------------------
+      case 'image_with_animation':
+        return <Figure attrs={attrs} />;
+
+      case 'vc_gallery':
+        return <Gallery attrs={attrs} />;
+
+      case 'vc_single_image': {
+        const src = mediaUrl(attrs.image);
+        return src ? <Figure attrs={{ image_url: attrs.image, ...attrs }} /> : null;
+      }
+
+      // ---- interactive --------------------------------------------------
+      case 'nectar_image_comparison':
+        return <Compare attrs={attrs} />;
+
+      case 'toggles':
+        return <Toggles attrs={attrs} nodes={children} />;
+
+      case 'toggle':
+        // A lone toggle outside a [toggles] wrapper.
+        return <Toggles attrs={{}} nodes={[node]} />;
+
+      case 'tabbed_section':
+        return <Tabs attrs={attrs} nodes={children} />;
+
+      case 'testimonial_slider':
+        return <Testimonials nodes={children} slider />;
+
+      case 'testimonial':
+        return <Testimonials nodes={[node]} />;
+
+      case 'page_submenu':
+        return <Submenu attrs={attrs} nodes={children} />;
+
+      case 'nectar_blog':
+        return <BlogFeed attrs={attrs} />;
+
+      // ---- calls to action ----------------------------------------------
+      case 'nectar_btn':
+        return <Button attrs={attrs} />;
+
+      case 'nectar_cta':
+        return (
+          <Cta attrs={attrs}>
+            <Self nodes={children} />
+          </Cta>
+        );
+
+      case 'nectar_icon':
+        return <NectarIcon attrs={attrs} />;
+
+      case 'fancy-ul':
+      case 'text-with-icon':
+        return <IconList attrs={attrs} nodes={children} kind={name} />;
+
+      // ---- forms ---------------------------------------------------------
+      case 'gravityform':
+        return <TallyForm formId={attrs.id} />;
+
+      // ---- embedded / nested content --------------------------------------
+      case 'vc_raw_html': {
+        const raw = children
+          .map((c) => (c.kind === 'html' ? c.html : ''))
+          .join('');
+        const decoded = decodeRawHtml(raw);
+
+        // The service-area map was pasted in as a whole HTML document.
+        // Check this first: its JavaScript contains "[", which would
+        // otherwise look like a shortcode below.
+        if (/id="map"/.test(decoded) && /leaflet/i.test(decoded)) {
+          return <ServiceAreaMap />;
+        }
+
+        // Some raw blocks just wrap another shortcode.
+        if (/\[[a-z][a-z0-9_-]*[\s\]]/i.test(decoded) && !/<(?:script|style|html)\b/i.test(decoded)) {
+          return <Self nodes={parseShortcodes(decoded)} />;
+        }
+
+        const isMap = /google\.com\/maps/.test(decoded);
+        const isVideo = /youtube\.com|youtu\.be|vimeo\.com/.test(decoded);
+        return (
+          <div class={`embed ${isVideo ? 'embed--video' : isMap ? 'embed--map' : ''}`}>
+            <Fragment set:html={cleanHtml(decoded)} />
+          </div>
+        );
+      }
+
+      case 'ls_content_block': {
+        const block = blocks[attrs.id];
+        return block ? <Self nodes={parseShortcodes(block.content)} /> : null;
+      }
+
+      case 'divider': {
+        const h = spacing(attrs.custom_height) ?? '30px';
+        const line = (attrs.line_type || '').toLowerCase();
+        if (line.includes('full width line')) {
+          return <hr class="divider divider--line" style={`margin:calc(${h} / 2) 0`} />;
+        }
+        if (line.includes('small line')) {
+          return <hr class="divider divider--small" style={`margin:calc(${h} / 2) auto`} />;
+        }
+        return <div class="divider" style={`height:${h}`} aria-hidden="true" />;
+      }
+
+      // Unknown shortcode: render its children so no copy is lost.
+      default:
+        return <Self nodes={children} />;
+    }
+  })
+}
+
+<style is:global>
+  .rich-text > *:last-child {
+    margin-bottom: 0;
+  }
+  .rich-text img {
+    border-radius: var(--radius);
+  }
+  .col > .rich-text + .rich-text {
+    margin-top: 20px;
+  }
+</style>

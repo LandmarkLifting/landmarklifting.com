@@ -1,0 +1,269 @@
+---
+/**
+ * Salient testimonial / testimonial_slider.
+ *
+ * Laid out as a grid the three reviews became 255px-wide, 830px-tall columns of
+ * text. This is a scroll-snap carousel instead: one comfortable card at a time
+ * on small screens, two or three side by side on wider ones. It scrolls
+ * natively, so the buttons and dots are enhancements — it still works with no
+ * JavaScript.
+ */
+import type { Node } from '../../lib/shortcode';
+import Icon from '../Icon.astro';
+
+interface Props {
+  nodes: Node[];
+  slider?: boolean;
+}
+const { nodes, slider = false } = Astro.props;
+const items = nodes.filter(
+  (n): n is Extract<Node, { kind: 'tag' }> => n.kind === 'tag' && n.name === 'testimonial',
+);
+const carousel = slider || items.length > 1;
+const uid = Math.random().toString(36).slice(2, 8);
+---
+{
+  items.length > 0 &&
+    (carousel ? (
+      <section class="reviews" data-reviews aria-roledescription="carousel" aria-label="Customer reviews">
+        <div class="reviews__viewport" data-reviews-track tabindex="0">
+          {items.map((t, i) => (
+            <figure
+              class="reviews__card"
+              data-reviews-slide
+              role="group"
+              aria-roledescription="review"
+              aria-label={`Review ${i + 1} of ${items.length}`}
+            >
+              <span class="reviews__quotemark" aria-hidden="true">&ldquo;</span>
+              <blockquote class="reviews__quote" set:html={t.attrs.quote ?? ''} />
+              {t.attrs.name && (
+                <figcaption class="reviews__name">
+                  <span class="reviews__avatar" aria-hidden="true">
+                    {(t.attrs.name.trim()[0] || '').toUpperCase()}
+                  </span>
+                  <span set:html={t.attrs.name} />
+                </figcaption>
+              )}
+            </figure>
+          ))}
+        </div>
+
+        <div class="reviews__controls" hidden data-reviews-controls>
+          <button class="reviews__btn" type="button" data-reviews-prev aria-label="Previous review">
+            <Icon name="chevron-left" size={18} strokeWidth={2.5} />
+          </button>
+          <div class="reviews__dots">
+            {items.map((_, i) => (
+              <button class="reviews__dot" type="button" data-reviews-dot={i}
+                      aria-label={`Review ${i + 1}`} aria-current={i === 0 ? 'true' : 'false'}
+                      id={`rev-${uid}-${i}`} />
+            ))}
+          </div>
+          <button class="reviews__btn" type="button" data-reviews-next aria-label="Next review">
+            <Icon name="chevron-right" size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+      </section>
+    ) : (
+      <figure class="reviews__card reviews__card--single">
+        <span class="reviews__quotemark" aria-hidden="true">&ldquo;</span>
+        <blockquote class="reviews__quote" set:html={items[0].attrs.quote ?? ''} />
+        {items[0].attrs.name && <figcaption class="reviews__name" set:html={items[0].attrs.name} />}
+      </figure>
+    ))
+}
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-reviews]').forEach((root) => {
+    const track = root.querySelector<HTMLElement>('[data-reviews-track]');
+    const controls = root.querySelector<HTMLElement>('[data-reviews-controls]');
+    const slides = [...root.querySelectorAll<HTMLElement>('[data-reviews-slide]')];
+    const dots = [...root.querySelectorAll<HTMLButtonElement>('[data-reviews-dot]')];
+    const prev = root.querySelector<HTMLButtonElement>('[data-reviews-prev]');
+    const next = root.querySelector<HTMLButtonElement>('[data-reviews-next]');
+    if (!track || !controls || slides.length < 2) return;
+
+    controls.hidden = false;
+
+    const step = () => slides[1].offsetLeft - slides[0].offsetLeft || slides[0].offsetWidth;
+    const current = () => Math.round(track.scrollLeft / step());
+
+    const sync = () => {
+      const i = current();
+      dots.forEach((d, j) => d.setAttribute('aria-current', String(j === i)));
+      if (prev) prev.disabled = track.scrollLeft < 4;
+      if (next) next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+    };
+
+    const go = (i: number) => track.scrollTo({ left: i * step(), behavior: 'smooth' });
+
+    prev?.addEventListener('click', () => go(Math.max(0, current() - 1)));
+    next?.addEventListener('click', () => go(Math.min(slides.length - 1, current() + 1)));
+    dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
+
+    let raf = 0;
+    track.addEventListener(
+      'scroll',
+      () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(sync);
+      },
+      { passive: true },
+    );
+    window.addEventListener('resize', sync);
+    sync();
+  });
+</script>
+
+<style>
+  .reviews {
+    margin-bottom: var(--space-md);
+  }
+  .reviews__viewport {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .reviews__viewport::-webkit-scrollbar {
+    display: none;
+  }
+  .reviews__viewport:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .reviews__card {
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin: 0;
+    color: var(--body-text);
+  }
+  .reviews__card--single {
+    max-width: 620px;
+  }
+  .reviews__quotemark {
+    font-family: var(--font-head);
+    font-size: 3.25rem;
+    line-height: 0.6;
+    color: var(--accent);
+    opacity: 0.32;
+    margin-bottom: var(--space-sm);
+  }
+  .reviews__quote {
+    border: 0;
+    padding: 0;
+    margin: 0 0 var(--space-md);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--body-text);
+    flex: 1;
+  }
+  .reviews__name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+    font-size: 0.9375rem;
+  }
+  .reviews__avatar {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .reviews__controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+  }
+  .reviews__btn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    transition:
+      background-color var(--transition),
+      border-color var(--transition),
+      color var(--transition),
+      opacity var(--transition);
+  }
+  .reviews__btn:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .reviews__btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .reviews__dots {
+    display: flex;
+    gap: 8px;
+  }
+  .reviews__dot {
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--line-strong);
+    cursor: pointer;
+    transition: background-color var(--transition), transform var(--transition);
+  }
+  .reviews__dot[aria-current='true'] {
+    background: var(--accent);
+    transform: scale(1.25);
+  }
+
+  /* The cards keep their light surface on a dark band; the controls invert. */
+  :global(.row--light) .reviews__btn {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+  }
+  :global(.row--light) .reviews__dot {
+    background: rgba(255, 255, 255, 0.35);
+  }
+  :global(.row--light) .reviews__dot[aria-current='true'] {
+    background: var(--accent);
+  }
+
+  /* One card at a time until there is room for more. */
+  @media (max-width: 780px) {
+    .reviews__viewport {
+      grid-auto-columns: 88%;
+    }
+  }
+  @media (min-width: 781px) and (max-width: 1100px) {
+    .reviews__viewport {
+      grid-auto-columns: minmax(0, 48%);
+    }
+  }
+</style>

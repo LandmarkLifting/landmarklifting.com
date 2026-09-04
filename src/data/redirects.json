@@ -1,0 +1,618 @@
+[
+ {
+  "url": "/how-do-you-know-how-much-polyurethane-it-takes-to-lift-my-concrete/",
+  "match_url": "/how-do-you-know-how-much-polyurethane-it-takes-to-lift-my-concrete",
+  "action_data": "https://landmarklifting.com/how-much-polyurethane-does-it-take-to-lift-concrete/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/much-polyurethane-takes-lift-concrete/",
+  "match_url": "/much-polyurethane-takes-lift-concrete",
+  "action_data": "https://landmarklifting.com/how-much-polyurethane-does-it-take-to-lift-concrete/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/much-polyurethane-take-lift-concrete/",
+  "match_url": "/much-polyurethane-take-lift-concrete",
+  "action_data": "https://landmarklifting.com/how-much-polyurethane-does-it-take-to-lift-concrete/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/dont-grind-your-concrete-walkway-lift-it/",
+  "match_url": "/dont-grind-your-concrete-walkway-lift-it",
+  "action_data": "https://landmarklifting.com/dont-grind-concrete-walkway-lift/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/dont-grind-your-concrete-walkway-lift-it/",
+  "match_url": "/dont-grind-your-concrete-walkway-lift-it",
+  "action_data": "https://landmarklifting.com/trip-hazard-in-uneven-concrete-sidewalk/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/what-is-a-trip-hazard/",
+  "match_url": "/what-is-a-trip-hazard",
+  "action_data": "https://landmarklifting.com/trip-hazard/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/environment-care/",
+  "match_url": "/environment-care",
+  "action_data": "https://landmarklifting.com/eco-friendly/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/839-2",
+  "match_url": "/839-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/840-2",
+  "match_url": "/840-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/841-2",
+  "match_url": "/841-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/842-2",
+  "match_url": "/842-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/844-2",
+  "match_url": "/844-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/845-2",
+  "match_url": "/845-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/846-2",
+  "match_url": "/846-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/847-2",
+  "match_url": "/847-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/848-2",
+  "match_url": "/848-2",
+  "action_data": "/landmark-lifting-before-and-after",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/849-2",
+  "match_url": "/849-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/850-2",
+  "match_url": "/850-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/851-2",
+  "match_url": "/851-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/852-2",
+  "match_url": "/852-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/853-2",
+  "match_url": "/853-2",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account",
+  "match_url": "/account",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/945-2",
+  "match_url": "/account/945-2",
+  "action_data": "/account/toc",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/cartv",
+  "match_url": "/account/cartv",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/checkout",
+  "match_url": "/account/checkout",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/checkout/review-order",
+  "match_url": "/account/checkout/review-order",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/cookies",
+  "match_url": "/account/cookies",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/lost-api",
+  "match_url": "/account/lost-api",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/privacy",
+  "match_url": "/account/privacy",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/privacy-policy-2",
+  "match_url": "/account/privacy-policy-2",
+  "action_data": "/account/privacy",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/shop",
+  "match_url": "/account/shop",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/shop",
+  "match_url": "/account/shop",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/terms-and-conditions",
+  "match_url": "/account/terms-and-conditions",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account/user-id",
+  "match_url": "/account/user-id",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account__trashed/cookies",
+  "match_url": "/account__trashed/cookies",
+  "action_data": "/cookies",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account__trashed/privacy",
+  "match_url": "/account__trashed/privacy",
+  "action_data": "/privacy",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/account__trashed/terms-and-conditions",
+  "match_url": "/account__trashed/terms-and-conditions",
+  "action_data": "/terms-and-conditions",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/can-concrete-lifted",
+  "match_url": "/can-concrete-lifted",
+  "action_data": "/can-my-concrete-be-lifted",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/category/gallery",
+  "match_url": "/category/gallery",
+  "action_data": "/gallery",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/category/uncategorized",
+  "match_url": "/category/uncategorized",
+  "action_data": "/category/blog",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/cf-thank-you",
+  "match_url": "/cf-thank-you",
+  "action_data": "/contact-thank-you",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/checkout-2",
+  "match_url": "/checkout-2",
+  "action_data": "/my-account/checkout",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/concrete-lifting-2",
+  "match_url": "/concrete-lifting-2",
+  "action_data": "/concrete-lifting-utah",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/concrete-lifting-job-before-and-after",
+  "match_url": "/concrete-lifting-job-before-and-after",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/concrete-lifting\u2026before-and-after",
+  "match_url": "/concrete-lifting%e2%80%a6before-and-after",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/contact-us",
+  "match_url": "/contact-us",
+  "action_data": "/home/contact",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/dont-grind-your-concrete-walkway-lift-it",
+  "match_url": "/dont-grind-your-concrete-walkway-lift-it",
+  "action_data": "/dont-grind-concrete-walkway-lift",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/environment-care",
+  "match_url": "/environment-care",
+  "action_data": "/home/eco-friendly",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/er-thank-you",
+  "match_url": "/er-thank-you",
+  "action_data": "/footer-thank-you",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/footer-thank-you",
+  "match_url": "/footer-thank-you",
+  "action_data": "/main-thank-you",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/home/contact",
+  "match_url": "/home/contact",
+  "action_data": "/contact",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/home/privacy-policy",
+  "match_url": "/home/privacy-policy",
+  "action_data": "/account/privacy-policy-2",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/home/terms-and-conditions",
+  "match_url": "/home/terms-and-conditions",
+  "action_data": "/account/terms-and-conditions",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/how-do-you-know-how-much-polyurethane-it-takes-to-lift-my-concrete",
+  "match_url": "/how-do-you-know-how-much-polyurethane-it-takes-to-lift-my-concrete",
+  "action_data": "/how-much-polyurethane-does-it-take-to-lift-concrete",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/how-polyurethane-foam-works-in-utah",
+  "match_url": "/how-polyurethane-foam-works-in-utah",
+  "action_data": "/polyurethane-foam",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/injection-hole-size",
+  "match_url": "/injection-hole-size",
+  "action_data": "/injection-hole-sizes",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/july-2018-fresh-living-segment",
+  "match_url": "/july-2018-fresh-living-segment",
+  "action_data": "/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/landmark-lifting-before-and-after",
+  "match_url": "/landmark-lifting-before-and-after",
+  "action_data": "/gallery/#ba",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/landmark-lifting-home-utah-concrete-hazard-repair-specialists/what-we-do",
+  "match_url": "/landmark-lifting-home-utah-concrete-hazard-repair-specialists/what-we-do",
+  "action_data": "/how-it-works/what-we-do",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/lost-api-key",
+  "match_url": "/lost-api-key",
+  "action_data": "/account/lost-api",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/main-thank-you",
+  "match_url": "/main-thank-you",
+  "action_data": "/front-page-form-thank-you",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/much-polyurethane-take-lift-concrete",
+  "match_url": "/much-polyurethane-take-lift-concrete",
+  "action_data": "/how-much-polyurethane-does-it-take-to-lift-concrete",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/much-polyurethane-takes-lift-concrete",
+  "match_url": "/much-polyurethane-takes-lift-concrete",
+  "action_data": "/much-polyurethane-take-lift-concrete",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/my-account",
+  "match_url": "/my-account",
+  "action_data": "/account",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/quote-thank-you",
+  "match_url": "/quote-thank-you",
+  "action_data": "/quote-page-thank-you",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/sports-courts",
+  "match_url": "/sports-courts",
+  "action_data": "/pickleball-courts",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/thank-you",
+  "match_url": "/thank-you",
+  "action_data": "/er-thank-you",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/what-we-do",
+  "match_url": "/what-we-do",
+  "action_data": "/how-it-works",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/what-we-do-at-landmark-lifting",
+  "match_url": "/what-we-do-at-landmark-lifting",
+  "action_data": "/how-it-works",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/when-should-i-lift-my-concrete-2",
+  "match_url": "/when-should-i-lift-my-concrete-2",
+  "action_data": "/when-to-lift-concrete",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/why-should-i-lift-my-concrete",
+  "match_url": "/why-should-i-lift-my-concrete",
+  "action_data": "/why-lift-concrete",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/faq-2/",
+  "match_url": "/faq-2",
+  "action_data": "/faq/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/concrete-installation-2/",
+  "match_url": "/concrete-installation-2",
+  "action_data": "/concrete-replacement/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/concrete-lifting-in-iehi-utah/",
+  "match_url": "/concrete-lifting-in-iehi-utah",
+  "action_data": "/concrete-lifting-in-lehi-utah/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/concrete-lifting-in-iehi-utah/",
+  "match_url": "/concrete-lifting-in-iehi-utah",
+  "action_data": "/concrete-lifting-in-lehi-utah/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/sinking-driveway-repair-concrete-lifting/",
+  "match_url": "/sinking-driveway-repair-concrete-lifting",
+  "action_data": "/sinking-driveway-repair-concrete-lifting-in-utah/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ },
+ {
+  "url": "/expert-garage-floor-lifting-and-repair-in-utah/",
+  "match_url": "/expert-garage-floor-lifting-and-repair-in-utah",
+  "action_data": "https://landmarklifting.com/",
+  "action_code": "301",
+  "status": "enabled",
+  "regex": "0"
+ }
+]

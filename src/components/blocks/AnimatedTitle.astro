@@ -1,0 +1,47 @@
+---
+/**
+ * Salient nectar_animated_title, style "color-strip-reveal": the heading text
+ * sits on an accent strip that wipes in when scrolled into view.
+ */
+import { color, headingTag, isProseHeading } from '../../lib/render';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+const Tag = headingTag(attrs.heading_tag, 'h2') as any;
+const strip = color(attrs.color) || 'var(--accent)';
+// Over-long "headings" are really sentences: no strip reveal, prose styling.
+const prose = isProseHeading(attrs.text);
+---
+{
+  prose ? (
+    <Tag class="h--prose" set:html={attrs.text ?? ''} />
+  ) : (
+    <Tag class="animated-title animate-in" style={`--strip:${strip}`}>
+      <span class="animated-title__text" set:html={attrs.text ?? ''} />
+    </Tag>
+  )
+}
+
+<style>
+  .animated-title {
+    margin-bottom: 18px;
+  }
+  .animated-title__text {
+    display: inline;
+    background-image: linear-gradient(var(--strip), var(--strip));
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 0% 12%;
+    padding: 0 2px;
+    transition: background-size 0.9s cubic-bezier(0.25, 1, 0.33, 1) 0.15s;
+  }
+  .animated-title.is-visible .animated-title__text {
+    background-size: 100% 12%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animated-title__text {
+      background-size: 100% 12%;
+      transition: none;
+    }
+  }
+</style>

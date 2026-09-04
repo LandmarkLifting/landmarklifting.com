@@ -1,0 +1,53 @@
+---
+/** Salient nectar_cta. */
+import { headingTag, internalHref, isExternal } from '../../lib/render';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+const Tag = headingTag(attrs.heading_tag, 'span') as any;
+const href = internalHref(attrs.url);
+const external = isExternal(href);
+const align = attrs.alignment && attrs.alignment !== 'default' ? `text-${attrs.alignment}` : '';
+const style = [
+  attrs.text_color ? `color:${attrs.text_color}` : '',
+  attrs.font_size_desktop ? `font-size:${attrs.font_size_desktop}` : '',
+  attrs.padding_top ? `padding-top:${attrs.padding_top}` : '',
+  attrs.padding_bottom ? `padding-bottom:${attrs.padding_bottom}` : '',
+].filter(Boolean).join(';');
+---
+<div class={`cta ${align}`} style={style}>
+  <Tag class="cta__text"><slot /></Tag>
+  {attrs.link_text && (
+    <a class="cta__link" href={href}
+       target={external ? '_blank' : undefined} rel={external ? 'noopener' : undefined}
+       style={attrs.button_border_color ? `border-color:${attrs.button_border_color}` : undefined}
+       set:html={attrs.link_text} />
+  )}
+</div>
+
+<style>
+  .cta {
+    display: block;
+    margin-bottom: 20px;
+  }
+  .cta__text {
+    font-family: var(--font-head);
+    font-weight: 700;
+    display: block;
+  }
+  .cta__link {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 12px 26px;
+    border: 2px solid currentColor;
+    font-family: var(--font-head);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: inherit;
+    transition: background-color var(--transition), color var(--transition);
+  }
+  .cta__link:hover {
+    background: #fff;
+    color: var(--ink);
+  }
+</style>

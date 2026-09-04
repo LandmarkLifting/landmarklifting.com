@@ -1,0 +1,27 @@
+{
+  "name": "landmarklifting",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/build-redirects.mjs && astro dev",
+    "build": "node scripts/build-redirects.mjs && astro build",
+    "media": "node scripts/collect-media.mjs",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "check": "astro check",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "astro": "^5.6.1",
+    "sharp": "^0.34.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.4.1",
+    "bootstrap-icons": "^1.13.1",
+    "lucide-static": "^1.41.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.14.0"
+  }
+}

@@ -1,0 +1,76 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import PageHero from '../../components/PageHero.astro';
+import { categories, mediaUrl, permalink, postsInCategory } from '../../lib/content';
+import { site } from '../../lib/site';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  categories().map((c) => ({ params: { slug: c.slug }, props: { cat: c } }));
+
+interface Props { cat: { name: string; slug: string; count: number }; }
+const { cat } = Astro.props;
+const list = postsInCategory(cat.slug);
+---
+<Base
+  title={`${cat.name} Articles | ${site.name}`}
+  description={`Articles about ${cat.name.toLowerCase()} from ${site.name}, Utah's concrete lifting experts.`}
+>
+  <PageHero
+    title={cat.name}
+    header={{ bg: null, bg_color: null, height: null, font_color: null,
+              alignment: null, parallax: null, subtitle: 'Blog category' }}
+    crumbs={[{ label: 'Home', href: '/' }, { label: 'Blog', href: '/blog/' }, { label: cat.name, href: `/category/${cat.slug}/` }]}
+  />
+  <div class="container cat-index">
+    <ul class="cat-list">
+      {list.map((p) => {
+        const img = mediaUrl(p.featured_image);
+        return (
+          <li>
+            <a href={permalink(p)}>
+              {img && <img src={img} alt="" loading="lazy" decoding="async" />}
+              <span set:html={p.title} />
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .cat-index {
+    padding: var(--section-y) 0 var(--space-xl);
+  }
+  .cat-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .cat-list li {
+    margin: 0;
+  }
+  .cat-list a {
+    display: block;
+    color: inherit;
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.35;
+    transition: color var(--transition);
+  }
+  .cat-list img {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border-radius: var(--radius);
+    margin-bottom: var(--space-sm);
+    transition: box-shadow var(--transition);
+  }
+  .cat-list a:hover { color: var(--accent); }
+  .cat-list a:hover img { box-shadow: var(--shadow); }
+</style>

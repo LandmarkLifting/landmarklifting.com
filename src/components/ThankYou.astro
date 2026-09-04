@@ -1,0 +1,173 @@
+---
+/**
+ * Confirmation layout for the four form thank-you pages.
+ *
+ * The originals were a single centred line floating in white space. The page's
+ * own message is kept verbatim — it is the client's voice — and given a
+ * confirmation card, expectations, and somewhere to go next, because this is
+ * the moment right after someone has asked for a quote.
+ */
+import type { Node } from '../lib/shortcode';
+import Blocks from './Blocks.astro';
+import { site } from '../lib/site';
+import Icon from './Icon.astro';
+
+interface Props {
+  nodes: Node[];
+}
+const { nodes } = Astro.props;
+
+const next = [
+  {
+    title: 'We review your details',
+    body: 'Usually the same day, so we arrive already knowing what we are looking at.',
+  },
+  {
+    title: 'We call to confirm',
+    body: 'In most cases within 24 hours, to agree a time that suits you.',
+  },
+  {
+    title: 'We quote on site',
+    body: 'Free, with no obligation — most jobs are finished in under an hour.',
+  },
+];
+---
+<div class="thanks">
+  <div class="container">
+    <div class="thanks__card">
+      <span class="thanks__check" aria-hidden="true">
+        <Icon name="check" size={26} strokeWidth={3} />
+      </span>
+      <div class="thanks__message">
+        <Blocks nodes={nodes} />
+      </div>
+      <p class="thanks__actions">
+        <a class="btn btn--accent btn--large" href={site.phoneHref}>Call {site.phone}</a>
+        <a class="btn btn--dark btn--large" href="/gallery/">See our work</a>
+      </p>
+    </div>
+
+    <div class="thanks__next">
+      <h2>What happens next</h2>
+      <ol class="thanks__steps">
+        {next.map((s, i) => (
+          <li>
+            <span class="thanks__num">{i + 1}</span>
+            <span>
+              <strong>{s.title}</strong>
+              {s.body}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p class="thanks__more">
+        In the meantime — <a href="/how-it-works/">how concrete lifting works</a>,
+        <a href="/faq/">common questions</a>, or the
+        <a href="/service-areas/">areas we serve</a>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .thanks {
+    padding: var(--section-y) 0 var(--space-xl);
+  }
+  .thanks__card {
+    max-width: 640px;
+    margin: 0 auto var(--space-xl);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl) var(--space-lg);
+    text-align: center;
+  }
+  .thanks__check {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto var(--space-md);
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(241, 92, 40, 0.3);
+  }
+  /* The imported message is centred inside the card. */
+  .thanks__message :global(h1),
+  .thanks__message :global(h2),
+  .thanks__message :global(h3) {
+    margin-top: 0;
+  }
+  .thanks__message :global(*) {
+    text-align: center;
+  }
+  .thanks__message :global(.h--prose) {
+    margin-inline: auto;
+  }
+  .thanks__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    justify-content: center;
+    margin: var(--space-lg) 0 0;
+  }
+
+  .thanks__next {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .thanks__next h2 {
+    text-align: center;
+    margin-bottom: var(--space-lg);
+  }
+  .thanks__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-lg);
+    display: grid;
+    gap: var(--space-md);
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .thanks__steps li {
+    margin: 0;
+    text-align: center;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .thanks__steps strong {
+    display: block;
+    font-family: var(--font-head);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .thanks__num {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin: 0 auto var(--space-sm);
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-head);
+    font-weight: 700;
+  }
+  .thanks__more {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--muted);
+  }
+
+  @media (max-width: 690px) {
+    .thanks__steps {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+    .thanks__card {
+      padding: var(--space-lg) var(--space-md);
+    }
+  }
+</style>

@@ -1,0 +1,88 @@
+---
+/** Salient fancy-ul (styled bullet list) and text-with-icon. */
+import type { Node } from '../../lib/shortcode';
+import Blocks from '../Blocks.astro';
+import { mediaAlt, mediaUrl } from '../../lib/content';
+
+interface Props {
+  attrs: Record<string, string>;
+  nodes: Node[];
+  kind: 'fancy-ul' | 'text-with-icon';
+}
+const { attrs, nodes, kind } = Astro.props;
+const icon = mediaUrl(attrs.icon_image);
+const dash = attrs.icon_type === 'standard_dash';
+
+/**
+ * A list whose items are all short — the service-area link indexes, for
+ * instance — is a directory, not prose bullets, and the airy 12px rhythm makes
+ * it sprawl. Detect that and tighten the vertical spacing.
+ */
+const rawHtml = nodes.map((n) => (n.kind === 'html' ? n.html : '')).join('');
+const listItems = [...rawHtml.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)].map((m) =>
+  m[1].replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').trim(),
+);
+const compact =
+  listItems.length >= 4 && listItems.every((t) => t.length > 0 && t.length <= 28);
+---
+{
+  kind === 'text-with-icon' ? (
+    <div class="icon-row">
+      {icon && (
+        <div class="icon-row__icon">
+          <img src={icon} alt={mediaAlt(attrs.icon_image, '')} loading="lazy" decoding="async" />
+        </div>
+      )}
+      <div class="icon-row__body">
+        <Blocks nodes={nodes} />
+      </div>
+    </div>
+  ) : (
+    <div class={`fancy-list ${dash ? 'fancy-list--dash' : ''} ${compact ? 'fancy-list--compact' : ''}`}>
+      <Blocks nodes={nodes} />
+    </div>
+  )
+}
+
+<style is:global>
+  .fancy-list ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  .fancy-list ul li {
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: 12px;
+  }
+  .fancy-list ul li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 6px;
+    width: 14px;
+    height: 7px;
+    border-left: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    transform: rotate(-45deg);
+  }
+  .fancy-list--dash ul li::before {
+    top: 11px;
+    width: 16px;
+    height: 0;
+    border-left: 0;
+    transform: none;
+  }
+
+  /* Short link lists read as an index: keep the horizontal rhythm, close up
+     the vertical gaps. */
+  .fancy-list--compact ul li {
+    margin-bottom: 1px;
+    line-height: 1.5;
+  }
+  .fancy-list--compact ul li::before {
+    top: 10px;
+  }
+  .fancy-list--compact.fancy-list--dash ul li::before {
+    top: 12px;
+  }
+</style>

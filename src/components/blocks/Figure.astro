@@ -1,0 +1,69 @@
+---
+/** Salient image_with_animation. */
+import { internalHref } from '../../lib/render';
+import { mediaAlt, mediaSize, mediaUrl } from '../../lib/content';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+
+const ref = attrs.image_url ?? attrs.image;
+const src = mediaUrl(ref);
+const alt = mediaAlt(ref, '');
+const size = mediaSize(ref);
+/**
+ * WordPress generated resized copies and the shortcode says which one to use.
+ * Ignoring `image_size` meant a logo asked to render at "medium" (300px) was
+ * being drawn at its full 1095px.
+ */
+const WP_SIZES: Record<string, number> = {
+  thumbnail: 150,
+  medium: 300,
+  medium_large: 768,
+  large: 1024,
+  'portfolio-thumb': 600,
+};
+const sizeCap = WP_SIZES[(attrs.image_size || '').toLowerCase()] ?? null;
+
+const radius = attrs.border_radius && attrs.border_radius !== 'none' ? attrs.border_radius : null;
+const maxWidth = attrs.max_width && attrs.max_width !== '100%' ? attrs.max_width : null;
+const animate = (attrs.animation || '').toLowerCase() !== 'none' && (attrs.animation || '') !== '';
+const link = attrs.img_link ? internalHref(attrs.img_link) : null;
+
+const style = [
+  radius ? `border-radius:${radius}` : '',
+  maxWidth ? `max-width:${maxWidth}` : '',
+  // Never stretch an image past its own resolution, or past the size the
+  // shortcode asked for.
+  size || sizeCap
+    ? `--intrinsic-width:${Math.min(size?.w ?? Infinity, sizeCap ?? Infinity)}px`
+    : '',
+  attrs.alignment === 'center' ? 'margin-left:auto;margin-right:auto' : '',
+  attrs.box_shadow && attrs.box_shadow !== 'none' ? 'box-shadow:var(--shadow)' : '',
+].filter(Boolean).join(';');
+---
+{
+  src && (
+    <figure class={`figure ${animate ? 'animate-in' : ''}`} style={style}>
+      {link ? (
+        <a href={link} target={attrs.img_link_target === '_blank' ? '_blank' : undefined}
+           rel={attrs.img_link_target === '_blank' ? 'noopener' : undefined}>
+          <img src={src} alt={alt} width={size?.w} height={size?.h} loading="lazy" decoding="async" />
+        </a>
+      ) : (
+        <img src={src} alt={alt} width={size?.w} height={size?.h} loading="lazy" decoding="async" />
+      )}
+    </figure>
+  )
+}
+
+<style>
+  /* An image never renders wider than the file itself; small logos and badges
+     keep their intended size instead of being blown up to fill a column. */
+  .figure {
+    max-width: min(100%, var(--intrinsic-width, 100%));
+  }
+  .figure[style*='margin-left:auto'],
+  .text-center > .figure {
+    margin-inline: auto;
+  }
+</style>

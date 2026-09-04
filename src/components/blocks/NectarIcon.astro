@@ -1,0 +1,36 @@
+---
+/**
+ * Salient nectar_icon. The original used Salient's bundled Iconsmind font;
+ * the equivalent Lucide icons are used here so the artwork comes from a real
+ * library and only the glyphs actually used are shipped.
+ */
+import Icon from '../Icon.astro';
+import { ICONSMIND_TO_LUCIDE } from '../../lib/icons';
+import { color } from '../../lib/render';
+
+interface Props { attrs: Record<string, string>; }
+const { attrs } = Astro.props;
+
+const size = Math.min(Number(attrs.icon_size) || 48, 96);
+const tint = color(attrs.icon_color) || 'var(--accent)';
+const raw = (attrs.icon_iconsmind || attrs.icon || '')
+  .replace(/^iconsmind-/, '')
+  .replace(/^steadysets-icon-/, '')
+  .toLowerCase();
+const name = ICONSMIND_TO_LUCIDE[raw] ?? null;
+---
+{
+  name && (
+    <span class="nectar-icon" style={`color:${tint}`}>
+      <Icon name={name} size={size} strokeWidth={1.5} />
+    </span>
+  )
+}
+
+<style>
+  .nectar-icon {
+    display: inline-block;
+    line-height: 0;
+    margin-bottom: var(--space-sm);
+  }
+</style>

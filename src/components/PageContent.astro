@@ -1,0 +1,74 @@
+---
+/**
+ * Renders a page's shortcode tree.
+ *
+ * WPBakery rows bring their own full-width section layout, but plenty of pages
+ * (the legal pages, thank-you pages, a few others) keep their body as plain
+ * HTML at the top level with no row around it. Left alone that content renders
+ * edge to edge with no container. Here, consecutive top-level nodes that are
+ * not rows get grouped into a contained, readable block.
+ */
+import type { Node } from '../lib/shortcode';
+import Blocks from './Blocks.astro';
+
+interface Props {
+  nodes: Node[];
+}
+const { nodes } = Astro.props;
+
+/** Shortcodes that already lay themselves out full-width. */
+const SELF_LAYOUT = new Set([
+  'vc_row',
+  'vc_row_inner',
+  'page_submenu',
+  'nectar_blog',
+  'tabbed_section',
+]);
+
+const isSelfLaid = (n: Node) => n.kind === 'tag' && SELF_LAYOUT.has(n.name);
+const isEmptyHtml = (n: Node) =>
+  n.kind === 'html' && n.html.replace(/<[^>]+>/g, '').trim() === '' && !/<(img|iframe|hr)/i.test(n.html);
+
+// Group the tree into alternating runs of laid-out and loose content.
+const groups: { contained: boolean; nodes: Node[] }[] = [];
+for (const node of nodes) {
+  if (isEmptyHtml(node)) continue;
+  const contained = !isSelfLaid(node);
+  const last = groups[groups.length - 1];
+  if (last && last.contained === contained) last.nodes.push(node);
+  else groups.push({ contained, nodes: [node] });
+}
+---
+{
+  groups.map((g) =>
+    g.contained ? (
+      <div class="loose-content">
+        <div class="container">
+          <div class="loose-content__inner">
+            <Blocks nodes={g.nodes} />
+          </div>
+        </div>
+      </div>
+    ) : (
+      <Blocks nodes={g.nodes} />
+    ),
+  )
+}
+
+<style>
+  .loose-content {
+    padding: var(--section-y) 0;
+  }
+  /* Consecutive contained blocks should not stack up double padding. */
+  .loose-content + .loose-content {
+    padding-top: 0;
+  }
+  .loose-content__inner {
+    max-width: var(--measure);
+  }
+  .loose-content__inner :global(> h1:first-child),
+  .loose-content__inner :global(> h2:first-child),
+  .loose-content__inner :global(> h3:first-child) {
+    margin-top: 0;
+  }
+</style>

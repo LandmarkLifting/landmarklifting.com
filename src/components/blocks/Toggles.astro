@@ -1,0 +1,39 @@
+---
+/** Salient toggles / toggle — rendered as native <details> accordions. */
+import type { Node } from '../../lib/shortcode';
+import { headingTag } from '../../lib/render';
+import Blocks from '../Blocks.astro';
+
+interface Props {
+  attrs: Record<string, string>;
+  nodes: Node[];
+}
+const { nodes } = Astro.props;
+const items = nodes.filter((n): n is Extract<Node, { kind: 'tag' }> => n.kind === 'tag' && n.name === 'toggle');
+---
+<div class="toggles">
+  {items.map((item) => {
+    const Tag = headingTag(item.attrs.heading_tag, 'h4') as any;
+    return (
+      <details class="toggle" open={item.attrs.open === 'true' || undefined}>
+        <summary class="toggle__summary">
+          <Tag class="toggle__heading" set:html={item.attrs.title ?? ''} />
+        </summary>
+        <div class="toggle__body">
+          <Blocks nodes={item.children} />
+        </div>
+      </details>
+    );
+  })}
+</div>
+
+<style>
+  .toggle__heading {
+    display: inline;
+    font: inherit;
+    color: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+    margin: 0;
+  }
+</style>
