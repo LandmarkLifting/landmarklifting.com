@@ -22,6 +22,7 @@ import IconList from './blocks/IconList.astro';
 import NetlifyForm from './blocks/NetlifyForm.astro';
 import Submenu from './blocks/Submenu.astro';
 import BlogFeed from './blocks/BlogFeed.astro';
+import { posts, postsInCategory } from '../lib/content';
 import NectarIcon from './blocks/NectarIcon.astro';
 import ServiceAreaMap from './blocks/ServiceAreaMap.astro';
 import Self from './Blocks.astro';
@@ -40,6 +41,40 @@ const KNOWN_WIDTHS = new Set([
   '1/1', '1/2', '1/3', '2/3', '1/4', '3/4', '1/5', '2/5', '3/5', '4/5',
   '1/6', '5/6', '1/12', '5/12', '7/12', '11/12',
 ]);
+
+const isColumn = (c: Node) =>
+  c.kind === 'tag' && (c.name === 'vc_column' || c.name === 'vc_column_inner');
+
+/**
+ * WPBakery centres content with empty spacer columns — `[1/4][1/2][1/4]` —
+ * and authors leave columns empty when a layout was never finished. Rendering
+ * them costs real width: the quote form's block is `[1/4][1/2 form][1/4]`, and
+ * on pages where that block sits inside a half-width column with an empty
+ * sibling, the form ends up in a quarter of the page. A column with no content
+ * and no background of its own has nothing to show, so it is dropped, and a
+ * column left on its own fills the row (see `.col--solo`).
+ */
+/** A post feed whose category has no posts in the rebuilt data renders nothing. */
+const isEmptyFeed = (k: Node) => {
+  if (k.kind !== 'tag' || k.name !== 'nectar_blog') return false;
+  const cat = k.attrs.category?.trim();
+  return (cat ? postsInCategory(cat) : posts).length === 0;
+};
+
+const isEmptyColumn = (c: Node) =>
+  isColumn(c) &&
+  c.kind === 'tag' &&
+  !color(c.attrs.background_color) &&
+  c.children.every((k) => (k.kind === 'html' && k.html.trim() === '') || isEmptyFeed(k));
+
+/**
+ * Shortcodes that produce a section of their own. Authors sometimes drop one
+ * inside a text widget (`[vc_column_text][ls_content_block …][/vc_column_text]`);
+ * rendered literally, the whole section inherits the text block's reading
+ * measure and the quote form ends up 650px wide. They render as siblings.
+ */
+const isStructural = (k: Node) =>
+  k.kind === 'tag' && ['vc_row', 'vc_row_inner', 'ls_content_block', 'nectar_blog'].includes(k.name);
 
 /** Columns and rows carry structural attributes we translate into CSS. */
 function columnStyle(attrs: Record<string, string>) {
@@ -75,14 +110,27 @@ function columnStyle(attrs: Record<string, string>) {
       // ---- structure ----------------------------------------------------
       case 'vc_row':
       case 'vc_row_inner': {
-        // A row whose columns paint backgrounds is a row of cards; they need to
-        // stretch to a common height regardless of the row's placement setting.
-        const hasCards = children.some(
+        // A row where EVERY column paints a background is a row of cards, and
+        // cards share a height. One card beside plain text or a form must not
+        // stretch — it just becomes a tall box with a void under its copy.
+        const hasCards = children.filter(isColumn).length > 0 && children.filter(isColumn).every(
           (c) =>
             c.kind === 'tag' &&
             (c.name === 'vc_column' || c.name === 'vc_column_inner') &&
             Boolean(color(c.attrs.background_color)),
         );
+        const cols = children.filter(isColumn);
+        const kept = cols.filter((c) => !isEmptyColumn(c));
+        // Every column empty (e.g. a feed for a category with no posts): the
+        // row would be a blank band of padding. Skip it.
+        if (cols.length > 0 && kept.length === 0) return null;
+        for (const c of cols) {
+          if (c.kind !== 'tag') continue;
+          if (isEmptyColumn(c)) c.attrs._drop = '1';
+          // One column left from several, and not already full width: fill.
+          else if (kept.length === 1 && cols.length > 1 && (c.attrs.width || '').replace(/\s/g, '') !== '1/1')
+            c.attrs._solo = '1';
+        }
         return (
           <Row attrs={attrs} inner={name === 'vc_row_inner'} hasCards={hasCards}>
             <Self nodes={children} />
@@ -94,12 +142,19 @@ function columnStyle(attrs: Record<string, string>) {
       case 'vc_column_inner': {
         // A column with its own background must set a readable text colour;
         // the row's light/dark setting does not know about it.
+        if (attrs._drop) return null;
         const light = isLightColor(attrs.background_color);
         const rawWidth = (attrs.width || '').replace(/\s/g, '');
         const widthClass = KNOWN_WIDTHS.has(rawWidth) ? `col--${rawWidth.replace('/', '_')}` : '';
+        // WPBakery's per-breakpoint visibility lives in `offset`.
+        const hidden = (attrs.offset || '')
+          .split(/\s+/)
+          .filter((k) => /^vc_hidden-(xs|sm|md|lg)$/.test(k));
         const cls = [
           'col',
           widthClass,
+          attrs._solo ? 'col--solo' : '',
+          ...hidden,
           attrs.centered_text === 'true' ? 'text-center' : '',
           light === true ? 'col--light-bg' : light === false ? 'col--dark-bg' : '',
         ].filter(Boolean).join(' ');
@@ -117,12 +172,21 @@ function columnStyle(attrs: Record<string, string>) {
         );
       }
 
-      case 'vc_column_text':
+      case 'vc_column_text': {
+        const prose = children.filter((k) => !isStructural(k));
+        const sections = children.filter(isStructural);
+        const hasProse = prose.some((k) => k.kind !== 'html' || k.html.trim() !== '');
         return (
-          <div class="rich-text">
-            <Self nodes={children} />
-          </div>
+          <>
+            {hasProse && (
+              <div class="rich-text">
+                <Self nodes={prose} />
+              </div>
+            )}
+            {sections.length > 0 && <Self nodes={sections} />}
+          </>
         );
+      }
 
       // ---- text ---------------------------------------------------------
       case 'vc_custom_heading': {

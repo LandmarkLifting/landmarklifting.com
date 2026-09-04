@@ -184,6 +184,41 @@ const autocompleteFor = (name: string) =>
   })();
 </script>
 
+<style is:global>
+  /* The form is a light card, but it usually sits inside a dark column or a
+     light-text row, whose rules (`.col--dark-bg a`, `.row--light h3`, …) win on
+     specificity and paint the consent link, the phone link and the headings
+     white-on-white. These are global on purpose: the link inside the consent
+     label comes from set:html and never receives Astro's scoped attribute. */
+  .nf,
+  .col--dark-bg .nf,
+  .row--light .nf {
+    color: var(--body-text);
+  }
+  .nf .nf__heading,
+  .nf .nf__label,
+  .nf .nf__check-label,
+  .col--dark-bg .nf .nf__heading,
+  .col--dark-bg .nf .nf__label,
+  .col--dark-bg .nf .nf__check-label,
+  .row--light .nf .nf__heading,
+  .row--light .nf .nf__label,
+  .row--light .nf .nf__check-label {
+    color: var(--ink);
+  }
+  .nf a:not(.btn),
+  .col--dark-bg .nf a:not(.btn),
+  .row--light .nf a:not(.btn),
+  .row--light .col--light-bg .nf a:not(.btn) {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .nf a:not(.btn):hover {
+    color: var(--accent-strong);
+  }
+</style>
+
 <style>
   .nf {
     background: var(--surface);

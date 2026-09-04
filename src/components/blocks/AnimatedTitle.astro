@@ -26,21 +26,29 @@ const prose = isProseHeading(attrs.text);
   .animated-title {
     margin-bottom: 18px;
   }
+  /* The strip is a background on an inline span. Without `box-decoration-break:
+     clone` a heading that wraps paints one background across the whole inline
+     box, which shows up as a stray underline beneath the first line only. With
+     it, every line gets its own strip, and it is tall enough to read as the
+     highlight Salient drew rather than a hairline. */
   .animated-title__text {
     display: inline;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
     background-image: linear-gradient(var(--strip), var(--strip));
     background-repeat: no-repeat;
-    background-position: 0 88%;
-    background-size: 0% 12%;
-    padding: 0 2px;
+    background-position: 0 100%;
+    background-size: 0% 0.3em;
+    padding: 0 0.12em;
+    margin: 0 -0.12em;
     transition: background-size 0.9s cubic-bezier(0.25, 1, 0.33, 1) 0.15s;
   }
   .animated-title.is-visible .animated-title__text {
-    background-size: 100% 12%;
+    background-size: 100% 0.3em;
   }
   @media (prefers-reduced-motion: reduce) {
     .animated-title__text {
-      background-size: 100% 12%;
+      background-size: 100% 0.3em;
       transition: none;
     }
   }

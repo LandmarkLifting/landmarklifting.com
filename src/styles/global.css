@@ -333,6 +333,10 @@ th {
   background: var(--col-bg, transparent);
   border-radius: var(--col-radius, var(--radius-lg));
   padding: var(--col-pad, var(--space-lg));
+}
+/* Fill the column only when the row asked for equal heights (a row of cards,
+   or WPBakery's equal_height) — otherwise a card sizes to its content. */
+.row__inner[style*='stretch'] > .col > .col__box {
   height: 100%;
 }
 /* Columns with no background of their own keep their natural spacing. */
@@ -983,4 +987,91 @@ h4.h--prose,
 .row--light .h--prose,
 .col--dark-bg .h--prose {
   color: rgba(255, 255, 255, 0.92);
+}
+
+/* --------------------------------------------------------------------------
+   Layout repairs for WPBakery markup that only worked with Salient's runtime
+   -------------------------------------------------------------------------- */
+
+/* A column left alone in its row after empty spacers were dropped (see
+   Blocks.astro). It fills the row, but caps at a comfortable width so a form
+   or a block of copy is not stretched across 1100px. */
+.col--solo {
+  --col-width: 100%;
+  max-width: min(100%, 780px);
+  margin-inline: auto;
+}
+
+/* Nested half-columns inside a third (or narrower) column can never have
+   room: the DRILL / LIFT / PATCH steps put an image and a text card side by
+   side inside a 1/3 column, giving the card ~130px and wrapping every two
+   words. Stack them — image above, card below. */
+.col--1_3 .row--inner > .row__inner > .col,
+.col--1_4 .row--inner > .row__inner > .col,
+.col--1_5 .row--inner > .row__inner > .col,
+.col--1_6 .row--inner > .row__inner > .col {
+  --col-width: 100%;
+}
+/* Diagram above a card: keep it modest and centred rather than filling the
+   column edge to edge. */
+.col--1_3 .row--inner > .row__inner > .col > .figure {
+  max-width: min(100%, var(--intrinsic-width, 100%), 220px);
+  margin-inline: auto;
+}
+/* Two columns nested inside a two-thirds column are ~330px each on desktop;
+   below a wide viewport they wrap five words to a line. Stack them early. */
+@media (max-width: 1100px) {
+  .col--2_3 .row--inner > .row__inner > .col,
+  .col--3_4 .row--inner > .row__inner > .col {
+    --col-width: 100%;
+  }
+}
+
+/* A heading that follows a nested row was butting straight against it. */
+.col > .row--inner + .rich-text {
+  margin-top: var(--space-md);
+}
+
+/* WPBakery per-breakpoint visibility (column `offset` attribute). Breakpoints
+   match Bootstrap 3, which WPBakery's grid is built on. */
+@media (max-width: 767px) {
+  .vc_hidden-xs { display: none !important; }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+  .vc_hidden-sm { display: none !important; }
+}
+@media (min-width: 992px) and (max-width: 1199px) {
+  .vc_hidden-md { display: none !important; }
+}
+@media (min-width: 1200px) {
+  .vc_hidden-lg { display: none !important; }
+}
+
+/* Bold text takes the ink colour for emphasis on light backgrounds; on a light
+   row or a dark card that painted "AS SEEN ON:" near-black on near-black. */
+.row--light b,
+.row--light strong,
+.col--dark-bg b,
+.col--dark-bg strong {
+  color: inherit;
+}
+.row--light .col--light-bg b,
+.row--light .col--light-bg strong {
+  color: var(--ink);
+}
+
+/* A phone number set as a heading is a call-to-action, not prose: no
+   underline, inherit the heading colour. */
+h1 a,
+h2 a,
+h3 a,
+h4 a {
+  text-decoration: none;
+  color: inherit;
+}
+h1 a:hover,
+h2 a:hover,
+h3 a:hover,
+h4 a:hover {
+  color: var(--accent);
 }

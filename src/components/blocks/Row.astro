@@ -1,6 +1,6 @@
 ---
 /** WPBakery vc_row / vc_row_inner. */
-import { color, spacing, youtubeId } from '../../lib/render';
+import { color, isLightColor, spacing, youtubeId } from '../../lib/render';
 import { mediaUrl } from '../../lib/content';
 
 interface Props {
@@ -16,7 +16,16 @@ const bgColor = color(attrs.bg_color);
 const overlay = color(attrs.color_overlay);
 const strength = Number(attrs.overlay_strength ?? '0');
 const hasOverlay = Boolean(overlay) && strength > 0;
-const light = attrs.text_color === 'light';
+/**
+ * Salient chose light or dark text automatically from the row's background;
+ * `text_color` was only stored when an author overrode it. Most dark rows in
+ * the content never set it, so without this the copy renders dark on dark.
+ */
+const darkBg = bgColor ? isLightColor(bgColor) === false : false;
+const darkOverlay = hasOverlay && strength >= 0.5 && isLightColor(overlay) === false;
+// `text_color="dark"` is Salient's stored default, not an author's choice —
+// nobody wants near-black copy on a #221e1e row — so it never wins here.
+const light = attrs.text_color === 'light' || darkBg || darkOverlay;
 const full = attrs.type === 'full_width_background' || attrs.type === 'full_width_content';
 const video = youtubeId(attrs.video_external);
 

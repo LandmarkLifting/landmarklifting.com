@@ -8,6 +8,7 @@ const { attrs } = Astro.props;
 const cat = attrs.category?.trim();
 const list = cat ? postsInCategory(cat) : posts;
 ---
+{list.length > 0 && (
 <div class="post-grid">
   {list.map((p) => {
     const img = mediaUrl(p.featured_image);
@@ -21,6 +22,7 @@ const list = cat ? postsInCategory(cat) : posts;
     );
   })}
 </div>
+)}
 
 <style>
   .post-grid {
