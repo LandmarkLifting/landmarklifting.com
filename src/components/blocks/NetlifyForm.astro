@@ -69,14 +69,6 @@ const autocompleteFor = (name: string) =>
       <label>Do not fill this in <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
     </p>
 
-    {/* Filled by the script below; empty values post fine with JS off. */}
-    {
-      spec.attribution &&
-        ATTRIBUTION_FIELDS.map((f) => (
-          <input type="hidden" name={f} value="" data-attr={f} />
-        ))
-    }
-
     <div class="nf__grid">
       {
         spec.fields.map((f) => {
@@ -140,6 +132,16 @@ const autocompleteFor = (name: string) =>
         or call <a href={site.phoneHref}>{site.phone}</a>
       </span>
     </div>
+
+    {/* Last on purpose: Netlify emails the fields in DOM order, so anything
+        above this point pushes the customer's own answers down the notification.
+        Filled by the script below; empty values post fine with JS off. */}
+    {
+      spec.attribution &&
+        ATTRIBUTION_FIELDS.map((f) => (
+          <input type="hidden" name={f} value="" data-attr={f} />
+        ))
+    }
   </form>
 </div>
 
