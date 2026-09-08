@@ -23,6 +23,7 @@ import {
   type Doc,
 } from '../lib/content';
 import { site } from '../lib/site';
+import { seoTitle } from '../lib/seo';
 
 export const getStaticPaths: GetStaticPaths = () => {
   return routableDocs
@@ -94,7 +95,7 @@ const schema = isPost
       })),
     };
 
-const title = doc.seo.title || `${doc.title} | ${site.name}`;
+const title = seoTitle(doc);
 const related = isPost ? posts.filter((p) => p.id !== doc.id).slice(0, 3) : [];
 ---
 <Base

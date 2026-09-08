@@ -41,12 +41,30 @@ WordPress stored every page as Salient/WPBakery shortcode markup
 | `src/components/Blocks.astro` | Maps each shortcode to a component |
 | `src/components/blocks/*.astro` | One component per shortcode family |
 | `src/lib/content.ts` | Loads the data, rebuilds WordPress permalinks |
-| `src/lib/render.ts` | Translates shortcode attributes to CSS |
+| `src/lib/render.ts` | Translates shortcode attributes to CSS, restores paragraphs |
+| `src/lib/seo.ts` | Expands the Yoast title templates |
 | `src/lib/site.ts` | Site config recovered from `wp_options` |
 
 Thirty distinct shortcodes appear in the content; all of them are handled. An
 unrecognised shortcode renders its children rather than dropping them, so new
 content can never silently vanish.
+
+### Paragraphs and SEO titles
+
+Two things WordPress produced at render time are not in the stored data, and
+both are rebuilt in `src/lib/render.ts` and `src/lib/seo.ts`:
+
+- **Paragraphs.** Content written in the classic editor has no `<p>` tags at
+  all — `wpautop()` added them from the blank lines between paragraphs. Without
+  that pass a post renders as one unbroken block of type. `toParagraphs()` is a
+  port of `wpautop()`, so posts break where they always did; it also treats a
+  block tag that opens or closes a line as a paragraph boundary (WordPress left
+  those nested inside the paragraph) and drops the paragraph tags a shortcode
+  left dangling mid-sentence. It is idempotent, so block-editor posts that
+  already carry their own `<p>` tags pass through untouched.
+- **SEO titles.** Yoast stored titles as templates — `%%title%% %%sep%%
+  %%sitename%%` — and expanded the variables per request. `seoTitle()` expands
+  them; `npm run verify` fails if a `%%…%%` ever reaches the output.
 
 ### Data files (`src/data/`)
 

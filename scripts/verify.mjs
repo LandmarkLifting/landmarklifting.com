@@ -1,7 +1,7 @@
 /**
  * Post-build checks: every internal link and image in dist/ must resolve to a
- * built file or a redirect rule, and no WPBakery shortcode may leak into the
- * rendered HTML.
+ * built file or a redirect rule, and neither a WPBakery shortcode nor an
+ * unexpanded Yoast title variable may leak into the rendered HTML.
  *
  * Usage: node scripts/verify.mjs   (exits non-zero on failure)
  */
@@ -85,6 +85,11 @@ for (const file of htmlFiles) {
   // A literal "null"/"undefined" in metadata means a data-extraction bug.
   for (const m of html.matchAll(/(?:content|href)="(null|undefined|NULL)"/g)) {
     note('meta', `stray ${m[1]} in a meta/link attribute`, page);
+  }
+  // Yoast stored titles as `%%title%% %%sep%% %%sitename%%` templates. One that
+  // reaches the output was never expanded — see src/lib/seo.ts.
+  for (const m of html.matchAll(/(?:<title>|content=")[^<"]*?(%%[a-z0-9_-]+%%)/gi)) {
+    note('meta', `unexpanded Yoast variable ${m[1]}`, page);
   }
   // Only pages we deliberately hide should carry noindex.
   if (/<meta name="robots"[^>]*noindex/.test(html) && !page.startsWith('/404')) {

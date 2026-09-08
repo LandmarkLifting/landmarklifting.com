@@ -5,7 +5,7 @@
  */
 import type { Node } from '../lib/shortcode';
 import { decodeRawHtml, parseShortcodes } from '../lib/shortcode';
-import { cleanHtml, color, fontContainer, headingTag, internalHref, isLightColor, isProseHeading, spacing, widthPercent } from '../lib/render';
+import { cleanHtml, color, fontContainer, headingTag, internalHref, isLightColor, isProseHeading, spacing, stripBlockComments, toParagraphs, widthPercent } from '../lib/render';
 import { blocks, mediaAlt, mediaUrl } from '../lib/content';
 
 import Row from './blocks/Row.astro';
@@ -29,8 +29,14 @@ import Self from './Blocks.astro';
 
 interface Props {
   nodes: Node[];
+  /**
+   * Set where the content is rendered inside an inline element — a dropcap, a
+   * CTA heading. A paragraph is invalid markup there and the browser hoists it
+   * straight back out of its wrapper.
+   */
+  inline?: boolean;
 }
-const { nodes } = Astro.props;
+const { nodes, inline = false } = Astro.props;
 
 /**
  * Fractions that have a `.col--a_b` class in global.css. Those set --col-width
@@ -101,7 +107,10 @@ function columnStyle(attrs: Record<string, string>) {
 {
   nodes.map((node) => {
     if (node.kind === 'html') {
-      return <Fragment set:html={cleanHtml(node.html)} />;
+      // WordPress added the paragraph tags on the way out, so the stored markup
+      // has to go through the same pass before it means anything.
+      const html = inline ? stripBlockComments(node.html) : toParagraphs(node.html);
+      return <Fragment set:html={cleanHtml(html)} />;
     }
 
     const { name, attrs, children } = node;
@@ -224,7 +233,7 @@ function columnStyle(attrs: Record<string, string>) {
       case 'nectar_dropcap':
         return (
           <span class="dropcap" style={color(attrs.color) ? `color:${color(attrs.color)}` : undefined}>
-            <Self nodes={children} />
+            <Self nodes={children} inline />
           </span>
         );
 
@@ -273,7 +282,7 @@ function columnStyle(attrs: Record<string, string>) {
       case 'nectar_cta':
         return (
           <Cta attrs={attrs}>
-            <Self nodes={children} />
+            <Self nodes={children} inline />
           </Cta>
         );
 
