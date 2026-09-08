@@ -29,6 +29,22 @@ export const analytics = {
   /** Facebook / Meta Pixel, previously injected into the header. */
   facebookPixelId: '1549200572048469',
 
+  /**
+   * CallRail number swapping, for a *direct* install. Most accounts deliver the
+   * swap script through the GTM container instead — if that is how this one is
+   * set up, leave these blank; the container tag is what runs it.
+   *
+   * For a direct install, CallRail's snippet is
+   * `//cdn.callrail.com/companies/<accountId>/<companyKey>/12/swap.js`. Copy the
+   * two path segments out of it. The script then renders in the <head>, ahead of
+   * everything else, so numbers are swapped before the page paints.
+   *
+   * The swap runs once per page load. This site does full page navigations, so
+   * that is every page; adding Astro's client-side router later would need the
+   * swap re-run on each navigation.
+   */
+  callRail: { accountId: '', companyKey: '' },
+
   /** Search-engine ownership verification metas. */
   googleSiteVerification: 'FqW5PGe-W7geiFk-kj2Xu3NDwM1DeKVgAnYvigYjuEk',
   bingSiteVerification: '9749C601C166700E5F583BC791F094F7',
@@ -38,5 +54,6 @@ export const analytics = {
  * Universal Analytics (UA-68134376-1) was also in the database but has been
  * switched off by Google since July 2023, so it is deliberately not carried
  * over. CallRail's plugin was installed but never configured — no account or
- * company key was ever saved — so there is no call-tracking script to restore.
+ * company key was ever saved — so there is no direct snippet to restore, and
+ * `callRail` above is left blank for the GTM container to own.
  */

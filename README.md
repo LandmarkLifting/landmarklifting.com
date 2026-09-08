@@ -332,17 +332,51 @@ re-implemented in `src/components/Analytics.astro`. IDs live in
 | Bing site verification | `9749C601…` | Insert Headers and Footers |
 
 Tags render **only in production builds**, so `astro dev` never pollutes
-reporting. GTM's snippet is in `<head>` with its `<noscript>` iframe first in
-`<body>`, as Google requires.
+reporting. GTM's snippet is the first thing in `<head>`, with its `<noscript>`
+iframe first in `<body>`, as Google requires.
+
+### Writing an inline script
+
+Every snippet is built as a string in the component frontmatter and written with
+`set:html`. This is not a style choice. An `is:inline` script is copied to the
+page **verbatim**, so an Astro expression in its body is never evaluated:
+
+```astro
+<!-- Ships the template literal as source text. Runs nothing. -->
+<script is:inline define:vars={{ id }}>{`doSomething(id);`}</script>
+
+<!-- Correct: set:html writes the code itself. -->
+<script is:inline set:html={`doSomething(${JSON.stringify(id)});`} />
+```
+
+The first form emits a block statement containing a template literal, which the
+browser evaluates and discards — no error, no console warning, just a tag that
+silently never fires. `npm run verify` now fails on it.
 
 **Worth checking:** the old site loaded both GTM *and* a GA4 gtag snippet. If
 the GTM container also holds a GA4 tag for this property, pageviews are counted
 twice — that was already true before the rebuild. Open the container; if GA4
 lives inside it, blank `ga4Id` and let GTM own it.
 
+### CallRail
+
+`callRail` in `src/lib/analytics.ts` is blank, because the WordPress plugin was
+installed but never configured — no account or company key was ever saved. Most
+accounts deliver number swapping through the GTM container rather than the page,
+and that is the assumption here: the container tag runs it.
+
+Fill the two keys in only for a *direct* install (take them out of the path in
+CallRail's own `//cdn.callrail.com/companies/<accountId>/<companyKey>/12/swap.js`
+snippet). It then renders in the `<head>` ahead of everything else, un-deferred,
+so numbers are swapped before the page paints. Phone numbers throughout the site
+are plain `tel:` links with visible text, which is what the swap looks for.
+
+The swap runs once per page load. This site does full page navigations, so that
+is every page — adding Astro's client-side router later would need the swap
+re-run on each navigation.
+
 Not carried over: Universal Analytics `UA-68134376-1` (Google switched it off in
-July 2023), and CallRail — its plugin was installed but never configured, so
-there was no account key to restore.
+July 2023).
 
 ## Verification
 
