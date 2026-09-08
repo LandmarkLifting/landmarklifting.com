@@ -4,10 +4,11 @@ import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import { BLOG_PAGE_ID, categories, docById, mediaUrl, permalink, posts } from '../../lib/content';
 import { site } from '../../lib/site';
+import { seoTitle } from '../../lib/seo';
 
 const doc = docById(BLOG_PAGE_ID);
 const cats = categories();
-const title = doc?.seo.title || `Blog | ${site.name}`;
+const title = doc ? seoTitle(doc, `Blog | ${site.name}`) : `Blog | ${site.name}`;
 ---
 <Base
   title={title}

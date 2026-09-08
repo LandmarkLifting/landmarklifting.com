@@ -1,7 +1,8 @@
 /**
  * Post-build checks: every internal link and image in dist/ must resolve to a
- * built file or a redirect rule, and no WPBakery shortcode may leak into the
- * rendered HTML.
+ * built file or a redirect rule, no WPBakery shortcode or unexpanded Yoast
+ * title variable may leak into the rendered HTML, and every inline script must
+ * be code the browser will actually run.
  *
  * Usage: node scripts/verify.mjs   (exits non-zero on failure)
  */
@@ -54,6 +55,7 @@ const problems = {
   images: new Map(),
   links: new Map(),
   shortcodes: new Map(),
+  scripts: new Map(),
   meta: new Map(),
   noindex: new Map(),
 };
@@ -85,6 +87,23 @@ for (const file of htmlFiles) {
   // A literal "null"/"undefined" in metadata means a data-extraction bug.
   for (const m of html.matchAll(/(?:content|href)="(null|undefined|NULL)"/g)) {
     note('meta', `stray ${m[1]} in a meta/link attribute`, page);
+  }
+  // Yoast stored titles as `%%title%% %%sep%% %%sitename%%` templates. One that
+  // reaches the output was never expanded — see src/lib/seo.ts.
+  for (const m of html.matchAll(/(?:<title>|content=")[^<"]*?(%%[a-z0-9_-]+%%)/gi)) {
+    note('meta', `unexpanded Yoast variable ${m[1]}`, page);
+  }
+  // An `is:inline` script is copied to the page verbatim, so an Astro
+  // expression in its body is never evaluated: `<script is:inline>{`…`}</script>`
+  // ships the template literal as source text, inside a block statement, where
+  // the browser computes it and throws it away. That is how the whole analytics
+  // stack shipped without running. A brace in statement position followed by a
+  // backtick is that bug and nothing else — real code has no reason to open a
+  // block whose only contents are a template literal.
+  for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+    if (/(^|[;{}])\s*\{\s*`/.test(m[1])) {
+      note('scripts', 'unevaluated Astro expression in an inline <script>', page);
+    }
   }
   // Only pages we deliberately hide should carry noindex.
   if (/<meta name="robots"[^>]*noindex/.test(html) && !page.startsWith('/404')) {
@@ -161,6 +180,7 @@ console.log(`scanned ${htmlFiles.length} pages\n`);
 report('missing images', 'images');
 report('broken internal links', 'links');
 report('leaked shortcodes', 'shortcodes');
+report('dead inline scripts', 'scripts');
 report('stray null metadata', 'meta');
 report('unexpected noindex', 'noindex');
 

@@ -5,6 +5,13 @@
  * `placement="head"` renders the tags themselves; `placement="body"` renders
  * the GTM <noscript> fallback, which must sit immediately after <body>.
  *
+ * Every snippet is built as a string here and written with `set:html`. An
+ * `is:inline` script is passed through to the page verbatim, so an expression
+ * in its body — `<script is:inline>{`…`}</script>` — is never evaluated: the
+ * template literal lands in the page as source text inside a block statement,
+ * where it is a value the browser computes and throws away. That is silent, and
+ * it is how GTM, gtag and the Pixel all shipped without ever running.
+ *
  * Nothing renders during `astro dev` — production builds only.
  */
 import { analytics } from '../lib/analytics';
@@ -15,54 +22,75 @@ interface Props {
 const { placement } = Astro.props;
 
 const enabled = import.meta.env.PROD;
-const { gtmId, ga4Id, googleAdsId, facebookPixelId, googleSiteVerification, bingSiteVerification } =
-  analytics;
+const {
+  gtmId,
+  ga4Id,
+  googleAdsId,
+  facebookPixelId,
+  callRail,
+  googleSiteVerification,
+  bingSiteVerification,
+} = analytics;
 
 // Site Kit configured GA4 and Google Ads through a single gtag loader.
 const gtagId = ga4Id || googleAdsId;
 const gtagConfig = [ga4Id, googleAdsId].filter(Boolean);
+
+/** IDs are interpolated as JSON so a stray quote can never break the script. */
+const js = (value: unknown) => JSON.stringify(value);
+
+const gtmSnippet = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${js(gtmId)});`;
+
+const gtagSnippet = `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('set', 'linker', { domains: ['landmarklifting.com'] });
+${js(gtagConfig)}.forEach(function (id) { gtag('config', id); });`;
+
+const pixelSnippet = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', ${js(facebookPixelId)});
+fbq('track', 'PageView');`;
+
+/**
+ * CallRail's number-swap script, for a direct install. Blank unless both keys
+ * are set — most accounts ship the swap through the GTM container instead.
+ */
+const callRailSrc =
+  callRail.accountId && callRail.companyKey
+    ? `https://cdn.callrail.com/companies/${callRail.accountId}/${callRail.companyKey}/12/swap.js`
+    : '';
 ---
 {
   placement === 'head' && (
     <>
+      {/* GTM goes first: the container loads everything else, and a swap script
+          inside it has to run before the phone numbers are painted. */}
+      {enabled && gtmId && <script is:inline set:html={gtmSnippet} />}
+
+      {/* Number swapping must not be deferred or bundled, or it rewrites the
+          phone numbers after the visitor has already read them. */}
+      {enabled && callRailSrc && <script is:inline src={callRailSrc} />}
+
       {googleSiteVerification && (
         <meta name="google-site-verification" content={googleSiteVerification} />
       )}
       {bingSiteVerification && <meta name="msvalidate.01" content={bingSiteVerification} />}
 
-      {enabled && gtmId && (
-        <script is:inline define:vars={{ gtmId }}>
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
-var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',gtmId);`}
-        </script>
-      )}
-
       {enabled && gtagId && (
         <>
           <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gtagId}`} />
-          <script is:inline define:vars={{ gtagConfig }}>
-            {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('set', 'linker', { domains: ['landmarklifting.com'] });
-gtagConfig.forEach(function (id) { gtag('config', id); });`}
-          </script>
+          <script is:inline set:html={gtagSnippet} />
         </>
       )}
 
-      {enabled && facebookPixelId && (
-        <script is:inline define:vars={{ facebookPixelId }}>
-          {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', facebookPixelId);
-fbq('track', 'PageView');`}
-        </script>
-      )}
+      {enabled && facebookPixelId && <script is:inline set:html={pixelSnippet} />}
     </>
   )
 }

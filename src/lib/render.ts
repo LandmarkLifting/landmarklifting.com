@@ -201,3 +201,150 @@ function markProseHeadings(html: string): string {
     },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Paragraphs
+// ---------------------------------------------------------------------------
+
+/**
+ * Block-level tags a paragraph may never wrap. This is the `$allblocks` list
+ * from WordPress's own `wpautop()`, kept in the same order for comparison.
+ */
+const AUTOP_BLOCKS =
+  '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form' +
+  '|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside' +
+  '|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
+
+/** `wpautop()`'s block-tag patterns, with `ALLBLOCKS` standing in for the list. */
+const blockRe = (pattern: string) =>
+  new RegExp(pattern.replace(/ALLBLOCKS/g, AUTOP_BLOCKS), 'g');
+
+/**
+ * WordPress never stored the `<p>` tags for content written in the classic
+ * editor — `wpautop()` added them on the way out, from the blank lines between
+ * paragraphs. This rebuild renders the stored HTML directly, so without the
+ * same pass those blank lines collapse and a whole post runs together as one
+ * unbroken block of type with a gap only where a heading happens to fall.
+ *
+ * A port of `wpautop()`, so posts break where they always did, with the one
+ * departure marked below. Content that already carries its own `<p>` tags
+ * (anything from the block editor) passes through unchanged — this is
+ * idempotent.
+ */
+export function autop(text: string, br = true): string {
+  if (!text || !text.trim()) return text;
+
+  // <pre> is the one place where newlines are content rather than layout.
+  const preserved: string[] = [];
+  let out = `${text}\n`.replace(/<pre[\s\S]*?<\/pre>/gi, (m) => {
+    preserved.push(m);
+    return `<WPPreTag${preserved.length - 1}>`;
+  });
+
+  out = out.replace(/\r\n?/g, '\n');
+
+  // A newline inside a tag is a wrapped attribute, not a paragraph break.
+  out = replaceInHtmlTags(out, '\n', ' <!-- wpnl --> ');
+
+  out = out.replace(/\s*<figcaption([^>]*)>/g, '<figcaption$1>');
+  out = out.replace(/<\/figcaption>\s*/g, '</figcaption>');
+
+  // A deliberate departure from `wpautop()`. WordPress only treats a *blank*
+  // line as a paragraph break, so a heading, list or table written on the line
+  // straight after a sentence — which is how the classic editor saved most of
+  // these posts — ends up nested inside that paragraph. The browser closes the
+  // <p> at the block tag anyway, which leaves the copy after it as a bare text
+  // node with no paragraph margin at all: the run-on spacing this pass exists
+  // to fix. A block tag that opens or closes a line is a paragraph boundary.
+  out = out.replace(blockRe('\\n([ \\t]*</?ALLBLOCKS[^>]*>)'), '\n\n$1');
+  out = out.replace(blockRe('(</?ALLBLOCKS[^>]*>[ \\t]*)\\n'), '$1\n\n');
+
+  out = out.replace(/\n\n+/g, '\n\n');
+  out = out
+    .split(/\n\s*\n/)
+    .filter((chunk) => chunk !== '')
+    .map((chunk) => `<p>${chunk.replace(/^\n+|\n+$/g, '')}</p>\n`)
+    .join('');
+
+  out = out.replace(/<p>\s*<\/p>/g, '');
+  out = out.replace(/<p>([^<]+)<\/(div|address|form)>/g, '<p>$1</p></$2>');
+  // A block element that ended up wrapped in a paragraph is unwrapped again.
+  out = out.replace(blockRe('<p>\\s*(</?ALLBLOCKS[^>]*>)\\s*</p>'), '$1');
+  out = out.replace(/<p>(<li[\s\S]*?)<\/p>/g, '$1');
+  out = out.replace(/<p><blockquote([^>]*)>/gi, '<blockquote$1><p>');
+  out = out.split('</blockquote></p>').join('</p></blockquote>');
+  out = out.replace(blockRe('<p>\\s*(</?ALLBLOCKS[^>]*>)'), '$1');
+  out = out.replace(blockRe('(</?ALLBLOCKS[^>]*>)\\s*</p>'), '$1');
+
+  if (br) {
+    out = out.replace(/<(script|style|svg|math)[\s\S]*?<\/\1>/g, (m) =>
+      m.replace(/\n/g, '<WPPreserveNewline />'),
+    );
+    out = out.replace(/<br\s*\/?>/gi, '<br />');
+    // A single newline inside a paragraph was a line break in the editor.
+    out = out.replace(/(?<!<br \/>)\s*\n/g, '<br />\n');
+    out = out.split('<WPPreserveNewline />').join('\n');
+  }
+
+  out = out.replace(blockRe('(</?ALLBLOCKS[^>]*>)\\s*<br />'), '$1');
+  // WordPress only strips a trailing break before a handful of block tags, so a
+  // heading that followed a line of copy without a blank line above it kept a
+  // stray <br /> and an extra line of space. Every block tag closes the
+  // paragraph anyway, so the break has nothing left to break.
+  out = out.replace(blockRe('<br />(\\s*</?ALLBLOCKS[^>]*>)'), '$1');
+  out = out.replace(/\n<\/p>$/, '</p>');
+
+  if (out.includes('<!-- wpnl -->')) {
+    out = out.split(' <!-- wpnl --> ').join('\n').split('<!-- wpnl -->').join('\n');
+  }
+
+  return out.replace(/<WPPreTag(\d+)>/g, (_m, i) => preserved[Number(i)]);
+}
+
+/** Apply a replacement only inside HTML tags, as `wp_replace_in_html_tags()` does. */
+function replaceInHtmlTags(html: string, needle: string, replacement: string): string {
+  return html.replace(/<[^>]*>/g, (tag) => tag.split(needle).join(replacement));
+}
+
+/**
+ * Block-editor posts store their markup wrapped in `<!-- wp:… -->` delimiters,
+ * which WordPress consumed when it rendered the blocks. They are dead weight in
+ * the output, and — because they are neither text nor a block tag — they also
+ * confuse the paragraph pass, so they come off first.
+ */
+export function stripBlockComments(html: string): string {
+  return html.replace(/<!--\s*\/?wp:[\s\S]*?-->/g, '');
+}
+
+/**
+ * Authors wrote paragraphs that a shortcode interrupts — `<p>Copy [nectar_btn]
+ * more copy</p>` — and the parser hands each side of the shortcode over as its
+ * own chunk, so one carries an opening tag it never closes and the other a
+ * closing tag that opens nothing. A browser turns each stray tag into an empty
+ * paragraph, which is a stray gap in the middle of the copy.
+ */
+function balanceParagraphs(html: string): string {
+  const parts = html.split(/(<p(?=[\s>])[^>]*>|<\/p\s*>)/gi);
+  const unclosed: number[] = [];
+  const drop = new Set<number>();
+  // Odd indices are the tags the split captured.
+  for (let i = 1; i < parts.length; i += 2) {
+    if (parts[i].startsWith('</')) {
+      if (unclosed.length) unclosed.pop();
+      else drop.add(i);
+    } else {
+      unclosed.push(i);
+    }
+  }
+  for (const i of unclosed) drop.add(i);
+  return drop.size === 0 ? html : parts.filter((_, i) => !drop.has(i)).join('');
+}
+
+/**
+ * Turn a chunk of stored WordPress markup into paragraphed HTML: strip the
+ * block-editor delimiters, restore the paragraphs `wpautop()` used to add, and
+ * drop the paragraph tags the source left dangling.
+ */
+export function toParagraphs(html: string): string {
+  return balanceParagraphs(autop(stripBlockComments(html)));
+}

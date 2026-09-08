@@ -5,11 +5,12 @@ import PageContent from '../components/PageContent.astro';
 import { parseShortcodes } from '../lib/shortcode';
 import { FRONT_PAGE_ID, docById, mediaUrl } from '../lib/content';
 import { site } from '../lib/site';
+import { seoTitle } from '../lib/seo';
 
 const doc = docById(FRONT_PAGE_ID)!;
 const tree = parseShortcodes(doc.content || '');
 const ogImage = mediaUrl(doc.seo.og_image) || mediaUrl(doc.featured_image);
-const title = doc.seo.title || `${site.name} | ${site.tagline}`;
+const title = seoTitle(doc, `${site.name} | ${site.tagline}`);
 
 const schema = {
   '@context': 'https://schema.org',
